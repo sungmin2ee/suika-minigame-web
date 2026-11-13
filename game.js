@@ -427,7 +427,7 @@ board.addEventListener("keydown",event=>{
   else if(!event.repeat) drop();
   aim=clamp(aim,0,W);
 });
-el("launch").onclick=start;
+
 el("close").onclick=closeGame;
 el("done").onclick=closeGame;
 for (const dialog of [game,result]) dialog.addEventListener("cancel",event=>{
@@ -461,3 +461,13 @@ function drawUpcoming() {
   el("upcoming").setAttribute("aria-label","다음 과일 "+fruitNames[upcoming]);
 }
 for (const image of images.values()) image.addEventListener("load",drawUpcoming);
+const launchButton = el("launch");
+const launchLabel = el("launch-label");
+launchButton.onclick = start;
+const frameImage = new Image();
+frameImage.src = "tropical-frame-v2.webp";
+Promise.allSettled([frameImage, ...images.values()].map(image => image.decode())).then(() => {
+  launchLabel.textContent = "미니게임";
+  launchButton.removeAttribute("aria-busy");
+  launchButton.disabled = false;
+});
