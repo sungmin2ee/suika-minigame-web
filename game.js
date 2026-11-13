@@ -228,6 +228,15 @@ function step(dt,now) {
           }
           bodies.splice(j,1);
           bodies.splice(i,1);
+          // Give nearby fruit a small sideways nudge at the moment of a merge.
+          const shockRadius = sizes[mergedType] + 36;
+          for (const fruit of bodies) {
+            const offsetX = fruit.x - x;
+            const distance = Math.hypot(offsetX, fruit.y - y);
+            if (distance >= shockRadius || distance === 0) continue;
+            const falloff = 1 - distance / shockRadius;
+            fruit.vx += 55 * falloff * (offsetX / distance) / Math.sqrt(fruit.mass);
+          }
           if (a.type < 7) add(mergedType,x,y);
           i--;
           break;
