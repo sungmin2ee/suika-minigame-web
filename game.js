@@ -5,6 +5,7 @@ const ctx = board.getContext("2d"), W = board.width, H = board.height;
 const fruit = ["🫐","🍑","🟠","🍊","🍎","🍑","🍈","🎃"];
 const colors = ["#6279de","#923882","#ed7028","#ff9b22","#e74a45","#ff9d9f","#b7d764","#f68623"];
 const warningLine = 86;
+const overflowLimit = 1300;
 const dropCooldown = 300;
 const sizes = [13,17,22,27,33,41,50,62].map(radius => radius * 1.3);
 const atlas = [["470cf.png",[658.18,-20,-180.61,877.58]],["470cf.png",[382.39,-179.37,-62.68,574.6]],["470cf.png",[381.05,-5.53,-237.41,531.94]],["470cf.png",[326.13,-244.48,-42.64,484.28]],["470cf.png",[291.94,-312.87,-24.73,423.39]],["470cf.png",[317.54,-97.97,-179.24,489.19]],["470cf.png",[246.82,-167.05,-124.09,411.36]],["54635.png",null],["bff02.png",[671.97,-101.34,-124.24,1190.6]],["bff02.png",[434.8,-259.06,-58.97,821.3]],["bff02.png",[291.78,-296.57,-22.52,556.11]],["bff02.png",[245.03,-346.31,-13.64,452.55]],["bff02.png",[245.03,-8.5,-130.5,452.55]],["bff02.png",[245.03,-119.37,-132.41,452.55]],["bff02.png",[245.03,-232.47,-136.44,452.55]],["bff02.png",[245.03,-345.11,-137.39,452.55]]];
@@ -17,6 +18,7 @@ for (const [file] of atlas) {
 }
 let bodies, effects, aim, next, upcoming, score, deadline, last, frame, dropAt;
 let running = false;
+let dropId = 0;
 let overflowSince=new Map();
 const pick = () => Math.floor(Math.random() * 4);
 const clamp = (value, min, max) => Math.max(min, Math.min(value, max));
@@ -68,6 +70,7 @@ function start() {
   if (!game.open) game.showModal();
   cancelAnimationFrame(frame);
   overflowSince.clear();
+  dropId = 0;
   bodies = []; effects = []; aim = W/2; next = pick(); upcoming = pick(); drawUpcoming(); score = 0;
   last = performance.now(); deadline = last + 60000; dropAt = last;
   running = true;
@@ -100,6 +103,7 @@ function drop() {
     return;
   }
   add(next,x,r);
+  Object.assign(bodies.at(-1), { dropId: ++dropId, chain: 0 });
   next = upcoming;
   upcoming = pick();
   drawUpcoming();
@@ -137,12 +141,18 @@ function step(dt,now) {
         if (overlap < 0) continue;
         if (a.type===b.type) {
           const x=(a.x+b.x)/2, y=(a.y+b.y)/2;
-          effects.push({x,y,born:now});
-          score += 10*(a.type+1);
+          const origin = (a.dropId ?? 0) === (b.dropId ?? 0)
+            ? ((a.chain ?? 0) >= (b.chain ?? 0) ? a : b)
+            : ((a.dropId ?? 0) > (b.dropId ?? 0) ? a : b);
+          const chain = (origin.chain ?? 0) + 1;
+          const multiplier = chain >= 3 ? 2 : chain === 2 ? 1.5 : 1;
+          effects.push({x,y,born:now,chain,multiplier});
+          score += 10*(a.type+1)*multiplier;
           el("score").textContent = score + "점";
           bodies.splice(j,1);
           bodies.splice(i,1);
           add(Math.min(a.type+1,7),x,y);
+          Object.assign(bodies.at(-1), { dropId: origin.dropId, chain });
           i--;
           break;
         }
@@ -178,15 +188,21 @@ function tick(now) {
   const aboveLine=bodies.filter(b=>b.y-b.r<warningLine);
   overflowSince=new Map(aboveLine.map(b=>[b,overflowSince.get(b) ?? now]));
   const overflowing=aboveLine.length>0;
-  if (aboveLine.some(b=>now-overflowSince.get(b)>=1300)) {
+  if (aboveLine.some(b=>now-overflowSince.get(b)>=overflowLimit)) {
     finish("과일이 상단 점선을 넘었어요");
     return;
   }
   last=now;
   ctx.clearRect(0,0,W,H);
-  ctx.strokeStyle=overflowing ? "#ffad63" : "#ffe9ad80";
+  if (overflowing) {
+    ctx.fillStyle="#ff514533";
+    ctx.fillRect(0,0,W,warningLine);
+  }
+  ctx.lineWidth=overflowing ? 3 : 1;
+  ctx.strokeStyle=overflowing ? "#ff7665" : "#ffe9ad80";
   ctx.setLineDash([7,5]);
   ctx.beginPath(); ctx.moveTo(0,warningLine); ctx.lineTo(W,warningLine); ctx.stroke();
+  ctx.lineWidth=1;
   const r=sizes[next], x=clamp(aim,r,W-r);
   const ready=now>=dropAt;
   ctx.strokeStyle=ready ? "#fff6cf" : "#ffffff35";
@@ -198,10 +214,28 @@ function tick(now) {
   ctx.globalAlpha=ready ? 1 : .42;
   drawFruit(next,x,r,r);
   ctx.restore();
-  effects=effects.filter(effect => now-effect.born<400);
+  if (overflowing) {
+    const elapsed=now-Math.min(...overflowSince.values());
+    ctx.save();
+    ctx.strokeStyle="#ff7665";
+    ctx.lineWidth=2;
+    for (const fruit of aboveLine) {
+      ctx.beginPath();
+      ctx.arc(fruit.x,fruit.y,fruit.r,0,Math.PI*2);
+      ctx.stroke();
+    }
+    ctx.fillStyle="#842e27";
+    ctx.fillRect(48,warningLine+6,W-96,25);
+    ctx.fillStyle="#fff4de";
+    ctx.font="bold 15px system-ui";
+    ctx.textAlign="center";
+    ctx.fillText("상단선 초과 · 종료까지 "+((overflowLimit-elapsed)/1000).toFixed(1)+"초",W/2,warningLine+24);
+    ctx.restore();
+  }
+  effects=effects.filter(effect => now-effect.born<700);
   for (const effect of effects) {
     const index=Math.floor((now-effect.born)/50);
-    if (!sprite(8+index,effect.x-48,effect.y-48,96,96)) {
+    if (index<8 && !sprite(8+index,effect.x-48,effect.y-48,96,96)) {
     ctx.fillStyle="rgba(255,236,156,"+(1-index/8)+")";
     for (let i=0;i<8;i++) {
       const angle=i*Math.PI/4, d=7+index*5;
@@ -210,7 +244,7 @@ function tick(now) {
       ctx.fill();
     }
     }
-    const progress=(now-effect.born)/400;
+    const progress=(now-effect.born)/700;
     ctx.save();
     ctx.globalAlpha=Math.min(1,(1-progress)*3);
     ctx.font="900 24px system-ui";
@@ -220,10 +254,16 @@ function tick(now) {
     ctx.lineWidth=4;
     ctx.strokeStyle="#51290f";
     ctx.fillStyle="#ffdf66";
-    const labelX=clamp(effect.x,42,W-42);
+    const labelX=clamp(effect.x,65,W-65);
     const labelY=Math.max(16,effect.y-23-progress*27);
     ctx.strokeText("GOOD!",labelX,labelY);
     ctx.fillText("GOOD!",labelX,labelY);
+    if (effect.chain>1) {
+      const label=effect.chain+"연쇄 ×"+effect.multiplier;
+      ctx.font="900 18px system-ui";
+      ctx.strokeText(label,labelX,labelY+23);
+      ctx.fillText(label,labelX,labelY+23);
+    }
     ctx.restore();
   }
   frame=requestAnimationFrame(tick);
