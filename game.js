@@ -471,3 +471,6 @@ Promise.allSettled([frameImage, ...images.values()].map(image => image.decode())
   launchButton.removeAttribute("aria-busy");
   launchButton.disabled = false;
 });
+document.addEventListener("touchmove", event => {
+  if (game.open && !result.open && event.cancelable) event.preventDefault();
+}, { passive: false });
