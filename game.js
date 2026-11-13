@@ -19,6 +19,7 @@ for (const [file] of atlas) {
 let bodies, effects, aim, next, upcoming, score, deadline, last, frame, dropAt;
 let running = false;
 let timerBonus;
+let fallingFruit;
 const physicsStep = 1 / 180;
 let physicsAccumulator = 0;
 let gold = 0;
@@ -74,10 +75,11 @@ function start() {
   cancelAnimationFrame(frame);
   overflowSince.clear();
   gold = 0;
+  fallingFruit = null;
   physicsAccumulator = 0;
   timerBonus?.cancel();
   bodies = []; effects = []; aim = W/2; next = pick(); upcoming = pick(); drawUpcoming(); score = 0;
-  last = performance.now(); deadline = last + 50000; dropAt = last;
+  last = performance.now(); deadline = last + 40000; dropAt = last;
   running = true;
   el("score").textContent = "0점";
   board.focus();
@@ -102,12 +104,13 @@ function add(type,x,y) {
 }
 function drop() {
   const now = performance.now();
-  if (!running || now >= deadline || now < dropAt) return;
+  if (!running || now >= deadline || now < dropAt || fallingFruit) return;
   const r = sizes[next], x = clamp(aim,r,W-r);
   if (bodies.some(b => Math.hypot(b.x-x,b.y-r) < b.r+r)) {
     return;
   }
   add(next,x,r);
+  fallingFruit = bodies.at(-1);
   next = upcoming;
   upcoming = pick();
   drawUpcoming();
@@ -117,6 +120,7 @@ function constrain(b) {
   if ((b.x < b.r && b.vx < 0) || (b.x > W-b.r && b.vx > 0)) b.vx *= -.42;
   if (b.y > H-b.r) {
     b.y = H-b.r;
+    if (b === fallingFruit) fallingFruit = null;
     if (b.vy > 0) b.vy = b.vy > 45 ? -b.vy*.12 : 0;
 
   }
@@ -143,6 +147,7 @@ function step(dt,now) {
         const a=bodies[i], b=bodies[j], dx=b.x-a.x, dy=b.y-a.y;
         const distance=Math.hypot(dx,dy), overlap=a.r+b.r-distance;
         if (overlap < 0) continue;
+        if (a === fallingFruit || b === fallingFruit) fallingFruit = null;
         if (a.type===b.type) {
           const x=(a.x+b.x)/2, y=(a.y+b.y)/2;
           const mergedType = Math.min(a.type+1,7);
@@ -163,7 +168,7 @@ function step(dt,now) {
           el("score").textContent = score + "점";
           bodies.splice(j,1);
           bodies.splice(i,1);
-          add(mergedType,x,y);
+          if (a.type < 7) add(mergedType,x,y);
           i--;
           break;
         }
@@ -229,7 +234,7 @@ function tick(now) {
   ctx.beginPath(); ctx.moveTo(0,warningLine); ctx.lineTo(W,warningLine); ctx.stroke();
   ctx.lineWidth=1;
   const r=sizes[next], x=clamp(aim,r,W-r);
-  const ready=now>=dropAt;
+  const ready=now>=dropAt && !fallingFruit;
   ctx.strokeStyle=ready ? "#fff6cf" : "#ffffff35";
   ctx.setLineDash([4,6]);
   ctx.beginPath(); ctx.moveTo(x,r); ctx.lineTo(x,H); ctx.stroke();
