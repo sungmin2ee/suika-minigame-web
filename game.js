@@ -37,8 +37,9 @@ function sprite(index, x, y, w, h, ctx=board.getContext("2d")) {
   return true;
 }
 function paintFruit(type,x,y,r,ctx=board.getContext("2d")) {
-  const width=type===6 ? r*1.76 : r*2;
-  if (sprite(type,x-width/2,y-r,width,2*r,ctx)) return;
+  const width=type===6 ? r*1.56 : r*2;
+  const height=type===6 ? r*2.12 : r*2;
+  if (sprite(type,x-width/2,y+r-height,width,height,ctx)) return;
   const shade = ctx.createRadialGradient(x-r*.35,y-r*.45,1,x,y,r);
   shade.addColorStop(0,"#fff0c9");
   shade.addColorStop(.35,colors[type]);
