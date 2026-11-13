@@ -17,7 +17,7 @@ let bodies, effects, aim, next, score, deadline, last, frame, dropAt;
 let running = false;
 const pick = () => Math.floor(Math.random() * 4);
 const clamp = (value, min, max) => Math.max(min, Math.min(value, max));
-function sprite(index, x, y, w, h) {
+function sprite(index, x, y, w, h, ctx=board.getContext("2d")) {
   const [file, crop] = atlas[index];
   const image = images.get(file);
   if (!image.naturalWidth) return false;
@@ -34,8 +34,8 @@ function sprite(index, x, y, w, h) {
   ctx.restore();
   return true;
 }
-function paintFruit(type,x,y,r) {
-  if (sprite(type,x-r,y-r,2*r,2*r)) return;
+function paintFruit(type,x,y,r,ctx=board.getContext("2d")) {
+  if (sprite(type,x-r,y-r,2*r,2*r,ctx)) return;
   const shade = ctx.createRadialGradient(x-r*.35,y-r*.45,1,x,y,r);
   shade.addColorStop(0,"#fff0c9");
   shade.addColorStop(.35,colors[type]);
@@ -228,3 +228,19 @@ for (const dialog of [game,result]) dialog.addEventListener("cancel",event=>{
   closeGame();
 });
 
+
+const fruitNames=["블루베리","자두","감","오렌지","사과","복숭아","멜론","호박"];
+fruitNames.forEach((name,type)=>{
+  const item=document.createElement("li");
+  item.setAttribute("aria-label",name);
+  item.title=name;
+  const icon=document.createElement("canvas");
+  icon.width=icon.height=64;
+  icon.setAttribute("aria-hidden","true");
+  item.append(icon);
+  el("fruit-order").append(item);
+  const image=images.get(atlas[type][0]);
+  const paint=()=>{ const context=icon.getContext("2d"); context.clearRect(0,0,64,64); paintFruit(type,32,32,30,context); };
+  image.addEventListener("load",paint,{once:true});
+  paint();
+});
