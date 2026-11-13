@@ -72,7 +72,7 @@ function start() {
   overflowSince.clear();
   timerBonus?.cancel();
   bodies = []; effects = []; aim = W/2; next = pick(); upcoming = pick(); drawUpcoming(); score = 0;
-  last = performance.now(); deadline = last + 40000; dropAt = last;
+  last = performance.now(); deadline = last + 20000; dropAt = last;
   running = true;
   el("score").textContent = "0점";
   board.focus();
@@ -140,19 +140,23 @@ function step(dt,now) {
         if (overlap < 0) continue;
         if (a.type===b.type) {
           const x=(a.x+b.x)/2, y=(a.y+b.y)/2;
-          effects.push({x,y,born:now});
+          const mergedType = Math.min(a.type+1,7);
+          const bonusSeconds = a.type<7 && mergedType>=4 ? mergedType-2 : 0;
+          effects.push({x,y,born:now,bonusSeconds});
           score += 10*(a.type+1);
-          deadline += 1000;
-          timerBonus?.cancel();
-          timerBonus = el("time").parentElement.animate(
-            [{background:"#a76e24",boxShadow:"0 0 14px #ffd56e"},
-             {background:"",boxShadow:""}],
-            {duration:550,easing:"ease-out"}
-          );
+          if (bonusSeconds) {
+            deadline += bonusSeconds * 1000;
+            timerBonus?.cancel();
+            timerBonus = el("time").parentElement.animate(
+              [{background:"#a76e24",boxShadow:"0 0 14px #ffd56e"},
+               {background:"",boxShadow:""}],
+              {duration:550,easing:"ease-out"}
+            );
+          }
           el("score").textContent = score + "점";
           bodies.splice(j,1);
           bodies.splice(i,1);
-          add(Math.min(a.type+1,7),x,y);
+          add(mergedType,x,y);
           i--;
           break;
         }
@@ -269,10 +273,13 @@ function tick(now) {
     const labelY=Math.max(16,effect.y-23-progress*27);
     ctx.strokeText("GOOD!",labelX,labelY);
     ctx.fillText("GOOD!",labelX,labelY);
-    ctx.font="900 18px system-ui";
-    ctx.fillStyle="#baf58a";
-    ctx.strokeText("+1초",labelX,labelY+22);
-    ctx.fillText("+1초",labelX,labelY+22);
+    if (effect.bonusSeconds) {
+      const label = "+" + effect.bonusSeconds + "초";
+      ctx.font="900 18px system-ui";
+      ctx.fillStyle="#baf58a";
+      ctx.strokeText(label,labelX,labelY+22);
+      ctx.fillText(label,labelX,labelY+22);
+    }
     ctx.restore();
   }
   frame=requestAnimationFrame(tick);
