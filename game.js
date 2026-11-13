@@ -17,6 +17,7 @@ for (const [file] of atlas) {
   image.src = "assets/" + file;
   images.set(file, image);
 }
+const collisionRadii = sizes.map((radius, type) => type === 0 ? radius * .87 : radius);
 let bodies, effects, aim, next, upcoming, deadline, last, frame, dropAt;
 let running = false;
 let timerBonus;
@@ -155,12 +156,12 @@ function closeGame() {
   if (game.open) game.close();
 }
 function add(type,x,y) {
-  bodies.push({type,x,y,r:sizes[type],vx:0,vy:0,angle:0,mass:fruitWeights[type]});
+  bodies.push({type,x,y,r:collisionRadii[type],vx:0,vy:0,angle:0,mass:fruitWeights[type]});
 }
 function drop() {
   const now = performance.now();
   if (!running || now >= deadline || now < dropAt || fallingFruit) return;
-  const r = sizes[next], x = clamp(aim,r,W-r);
+  const r = collisionRadii[next], x = clamp(aim,r,W-r);
   if (bodies.some(b => Math.hypot(b.x-x,b.y-r) < b.r+r)) {
     return;
   }
@@ -307,16 +308,16 @@ function tick(now) {
   ctx.setLineDash([7,5]);
   ctx.beginPath(); ctx.moveTo(0,warningLine); ctx.lineTo(W,warningLine); ctx.stroke();
   ctx.lineWidth=1;
-  const r=sizes[next], x=clamp(aim,r,W-r);
+  const r=collisionRadii[next], x=clamp(aim,r,W-r);
   const ready=now>=dropAt && !fallingFruit;
   ctx.strokeStyle=ready ? "#fff6cf" : "#ffffff35";
   ctx.setLineDash([4,6]);
   ctx.beginPath(); ctx.moveTo(x,r); ctx.lineTo(x,H); ctx.stroke();
   ctx.setLineDash([]);
-  for (const b of bodies) drawFruit(b.type,b.x,b.y,b.r,b.angle);
+  for (const b of bodies) drawFruit(b.type,b.x,b.y,sizes[b.type],b.angle);
   ctx.save();
   ctx.globalAlpha=ready ? 1 : .42;
-  drawFruit(next,x,r,r);
+  drawFruit(next,x,r,sizes[next]);
   ctx.restore();
   if (overflowing) {
     const elapsed=now-Math.min(...overflowSince.values());
