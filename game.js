@@ -84,7 +84,7 @@ function closeGame() {
   if (game.open) game.close();
 }
 function add(type,x,y) {
-  bodies.push({type,x,y,r:sizes[type],vx:0,vy:0,angle:0,spin:0});
+  bodies.push({type,x,y,r:sizes[type],vx:0,vy:0,angle:0,mass:(sizes[type]/sizes[0])**2});
 }
 function drop() {
   const now = performance.now();
@@ -95,7 +95,6 @@ function drop() {
     return;
   }
   add(next,x,r);
-  bodies.at(-1).spin = 2.8;
   next = pick();
   dropAt = now + 340;
 }
@@ -116,12 +115,12 @@ function step(dt,now) {
     b.y += b.vy*dt;
     b.vx *= Math.exp(-dt*(b.y >= H-b.r-1 ? 3.5 : .4));
 
-    b.spin *= Math.exp(-dt*1.5);
+
     constrain(b);
-    const onFloor=b.y >= H-b.r-1;
+
     const roll=(b.x-previousX)/b.r;
-    b.angle += roll + (onFloor ? 0 : b.spin*dt);
-    if (onFloor) b.spin=0;
+    b.angle += roll;
+
   }
   for (let pass=0;pass<4;pass++) {
     for (let i=0;i<bodies.length;i++) {
@@ -141,21 +140,19 @@ function step(dt,now) {
           break;
         }
         const nx=distance ? dx/distance : 1, ny=distance ? dy/distance : 0;
-        const shift=nx*overlap/2;
-        a.angle+=(clamp(a.x-shift,a.r,W-a.r)-a.x)/a.r;
-        b.angle+=(clamp(b.x+shift,b.r,W-b.r)-b.x)/b.r;
-        a.x-=shift; a.y-=ny*overlap/2;
-        b.x+=shift; b.y+=ny*overlap/2;
+        const totalMass=a.mass+b.mass;
+        const shareA=b.mass/totalMass, shareB=a.mass/totalMass;
+        const moveA=clamp(a.x-nx*overlap*shareA,a.r,W-a.r)-a.x;
+        const moveB=clamp(b.x+nx*overlap*shareB,b.r,W-b.r)-b.x;
+        a.angle+=moveA/a.r; b.angle+=moveB/b.r;
+        a.x+=moveA; a.y-=ny*overlap*shareA;
+        b.x+=moveB; b.y+=ny*overlap*shareB;
         const speed=(b.vx-a.vx)*nx+(b.vy-a.vy)*ny;
         if (speed<0) {
-          const tangent=(b.vx-a.vx)*(-ny)+(b.vy-a.vy)*nx;
-          const friction=clamp(tangent*.16,speed*.24,-speed*.24);
-          a.vx-=ny*friction; a.vy+=nx*friction;
-          b.vx+=ny*friction; b.vy-=nx*friction;
-          a.spin+=friction/a.r; b.spin+=friction/b.r;
-          const side=clamp(-speed*.85,0,240)*(nx || 1);
-          a.vx-=side; a.vy+=ny*speed*.64;
-          b.vx+=side; b.vy-=ny*speed*.64;
+          const side=clamp(-speed*1.7,0,480)*(nx || 1);
+          const vertical=ny*speed*1.28;
+          a.vx-=side*shareA; a.vy+=vertical*shareA;
+          b.vx+=side*shareB; b.vy-=vertical*shareB;
         }
       }
     }
