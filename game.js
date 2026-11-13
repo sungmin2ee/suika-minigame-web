@@ -18,6 +18,7 @@ for (const [file] of atlas) {
 }
 let bodies, effects, aim, next, upcoming, score, deadline, last, frame, dropAt;
 let running = false;
+let timerBonus;
 let overflowSince=new Map();
 const pick = () => Math.floor(Math.random() * 4);
 const clamp = (value, min, max) => Math.max(min, Math.min(value, max));
@@ -69,8 +70,9 @@ function start() {
   if (!game.open) game.showModal();
   cancelAnimationFrame(frame);
   overflowSince.clear();
+  timerBonus?.cancel();
   bodies = []; effects = []; aim = W/2; next = pick(); upcoming = pick(); drawUpcoming(); score = 0;
-  last = performance.now(); deadline = last + 60000; dropAt = last;
+  last = performance.now(); deadline = last + 40000; dropAt = last;
   running = true;
   el("score").textContent = "0점";
   board.focus();
@@ -140,6 +142,13 @@ function step(dt,now) {
           const x=(a.x+b.x)/2, y=(a.y+b.y)/2;
           effects.push({x,y,born:now});
           score += 10*(a.type+1);
+          deadline += 1000;
+          timerBonus?.cancel();
+          timerBonus = el("time").parentElement.animate(
+            [{background:"#a76e24",boxShadow:"0 0 14px #ffd56e"},
+             {background:"",boxShadow:""}],
+            {duration:550,easing:"ease-out"}
+          );
           el("score").textContent = score + "점";
           bodies.splice(j,1);
           bodies.splice(i,1);
@@ -171,11 +180,13 @@ function step(dt,now) {
 }
 function tick(now) {
   if (!running) return;
-  const seconds = Math.max(0,Math.ceil((deadline-now)/1000));
-  el("time").textContent = Math.floor(seconds/60)+":"+String(seconds%60).padStart(2,"0");
-  if (seconds===0) { finish("시간이 다 됐어요"); return; }
+  let seconds = Math.max(0,Math.ceil((deadline-now)/1000));
+
+  if (seconds===0) { el("time").textContent="0:00"; finish("시간이 다 됐어요"); return; }
   const dt=Math.min(.04,(now-last)/1000);
   for (let i=0;i<3;i++) step(dt/3,now);
+  seconds = Math.max(0,Math.ceil((deadline-now)/1000));
+  el("time").textContent = Math.floor(seconds/60)+":"+String(seconds%60).padStart(2,"0");
   const stacked = new Set(bodies.filter(fruit => fruit.y + fruit.r >= H - 1));
   for (const support of stacked) {
     for (const fruit of bodies) {
@@ -258,6 +269,10 @@ function tick(now) {
     const labelY=Math.max(16,effect.y-23-progress*27);
     ctx.strokeText("GOOD!",labelX,labelY);
     ctx.fillText("GOOD!",labelX,labelY);
+    ctx.font="900 18px system-ui";
+    ctx.fillStyle="#baf58a";
+    ctx.strokeText("+1초",labelX,labelY+22);
+    ctx.fillText("+1초",labelX,labelY+22);
     ctx.restore();
   }
   frame=requestAnimationFrame(tick);
