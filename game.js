@@ -218,7 +218,7 @@ function step(dt,now) {
           const goldBonus = a.type === 7 ? 10 : Math.max(0, mergedType - 4);
           gold += goldBonus;
           if (goldBonus) collectGold(x, y, goldBonus);
-          effects.push({x,y,born:now,bonusSeconds,goldBonus,precise:firstContact});
+          effects.push({x,y,born:now,bonusSeconds,goldBonus,precise:firstContact, radius:sizes[mergedType]});
           if (bonusSeconds) {
             deadline += bonusSeconds * 1000;
             timerBonus?.cancel();
@@ -366,12 +366,13 @@ function tick(now) {
   effects=effects.filter(effect => now-effect.born<700);
   for (const effect of effects) {
     const index=Math.floor((now-effect.born)/50);
-    if (index<8 && !sprite(8+index,effect.x-48,effect.y-48,96,96)) {
+    const extent = effect.radius * 1.2;
+    if (index<8 && !sprite(8+index,effect.x-extent,effect.y-extent,extent*2,extent*2)) {
     ctx.fillStyle="rgba(255,236,156,"+(1-index/8)+")";
     for (let i=0;i<8;i++) {
-      const angle=i*Math.PI/4, d=7+index*5;
+      const angle=i*Math.PI/4, d=(7+index*5)*extent/48;
       ctx.beginPath();
-      ctx.arc(effect.x+Math.cos(angle)*d,effect.y+Math.sin(angle)*d,5-index*.4,0,Math.PI*2);
+      ctx.arc(effect.x+Math.cos(angle)*d,effect.y+Math.sin(angle)*d,(5-index*.4)*extent/48,0,Math.PI*2);
       ctx.fill();
     }
     }
