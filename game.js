@@ -211,11 +211,11 @@ function step(dt,now) {
         if (overlap < 0) continue;
         const firstContact = a === fallingFruit || b === fallingFruit;
         if (firstContact) fallingFruit = null;
-        if (a.type===b.type) {
+        if (a.type === b.type && a.type < 7) {
           const x=(a.x+b.x)/2, y=(a.y+b.y)/2;
-          const mergedType = Math.min(a.type+1,7);
+          const mergedType = a.type + 1;
           const bonusSeconds = firstContact ? 1 : 0;
-          const goldBonus = a.type === 7 ? 10 : Math.max(0, mergedType - 4);
+          const goldBonus = Math.max(0, mergedType - 4);
           gold += goldBonus;
           if (goldBonus) collectGold(x, y, goldBonus);
           effects.push({x,y,born:now,bonusSeconds,goldBonus,precise:firstContact, radius:sizes[mergedType]});
@@ -239,7 +239,7 @@ function step(dt,now) {
             const falloff = 1 - distance / shockRadius;
             fruit.vx += 86.4 * falloff * (offsetX / distance) / Math.sqrt(fruit.mass);
           }
-          if (a.type < 7) add(mergedType,x,y);
+          add(mergedType,x,y);
           i--;
           break;
         }
