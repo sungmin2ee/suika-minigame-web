@@ -78,7 +78,7 @@ function start() {
   fallingFruit = null;
   physicsAccumulator = 0;
   timerBonus?.cancel();
-  bodies = []; effects = []; aim = W/2; next = pick(); upcoming = pick(); drawUpcoming(); score = 0;
+  bodies = []; effects = []; aim = W/2; next = 0; upcoming = pick(); drawUpcoming(); score = 0;
   last = performance.now(); deadline = last + 40000; dropAt = last;
   running = true;
   el("score").textContent = "0점";
