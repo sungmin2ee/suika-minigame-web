@@ -322,9 +322,11 @@ function tick(now) {
   }
   frame=requestAnimationFrame(tick);
 }
-game.addEventListener("pointermove", point);
-game.addEventListener("pointerup", event => {
-  if (event.button === 0 && !event.target.closest("button")) {
+document.addEventListener("pointermove", event => {
+  if (running && game.open) point(event);
+});
+document.addEventListener("pointerup", event => {
+  if (running && game.open && event.button === 0 && !event.target.closest("button")) {
     point(event);
     drop();
   }
