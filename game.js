@@ -92,7 +92,9 @@ function stop() {
 }
 function finish(message) {
   stop();
-  el("summary").textContent = message + " · " + "골드 " + gold + "g";
+  el("summary").textContent = message;
+  el("reward-earned").textContent = gold + "g";
+  el("reward-double").textContent = gold * 2 + "g";
   result.showModal();
 }
 function closeGame() {
@@ -158,7 +160,7 @@ function step(dt,now) {
           const x=(a.x+b.x)/2, y=(a.y+b.y)/2;
           const mergedType = Math.min(a.type+1,7);
           const bonusSeconds = firstContact ? 1 : 0;
-          const goldBonus = a.type === 7 ? 20 : mergedType === 7 ? 10 : 0;
+          const goldBonus = a.type === 7 ? 10 : Math.max(0, mergedType - 4);
           gold += goldBonus;
           effects.push({x,y,born:now,bonusSeconds,goldBonus,precise:firstContact});
           if (bonusSeconds) {
@@ -342,7 +344,6 @@ board.addEventListener("keydown",event=>{
   aim=clamp(aim,0,W);
 });
 el("launch").onclick=start;
-el("again").onclick=start;
 el("close").onclick=closeGame;
 el("done").onclick=closeGame;
 for (const dialog of [game,result]) dialog.addEventListener("cancel",event=>{
