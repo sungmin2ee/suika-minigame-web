@@ -178,7 +178,7 @@ function constrain(b) {
   if (b.y > H-b.r) {
     b.y = H-b.r;
     if (b === fallingFruit) fallingFruit = null;
-    if (b.vy > 0) b.vy = b.vy > 45 ? -b.vy*.12 : 0;
+    if (b.vy > 0) b.vy = 0;
 
   }
   b.x = clamp(b.x,b.r,W-b.r);
@@ -243,8 +243,8 @@ function step(dt,now) {
         b.x+=moveB; b.y+=ny*correction*shareB;
         const speed=(b.vx-a.vx)*nx+(b.vy-a.vy)*ny;
         if (speed<0) {
-          const hardImpact=speed < -45 && pass===0;
-          const side=hardImpact ? Math.min(-speed*1.7,480)*(nx || 1) : -speed*nx;
+          const hardImpact=firstContact && speed < -45 && pass===0;
+          const side=hardImpact ? Math.min(-speed*1.7,480)*nx : -speed*nx;
           const vertical=ny*speed*(hardImpact ? 1.28 : 1);
           a.vx-=side*shareA; a.vy+=vertical*shareA;
           b.vx+=side*shareB; b.vy-=vertical*shareB;
@@ -256,7 +256,7 @@ function step(dt,now) {
   const resting = !fallingFruit && bodies.every(fruit => {
     const previous = previousPositions.get(fruit);
     return previous &&
-      Math.hypot(fruit.x-previous.x,fruit.y-previous.y) < .25 &&
+      Math.hypot(fruit.x-previous.x,fruit.y-previous.y) < .35 &&
       (fruit.y+fruit.r >= H-1 || bodies.some(support =>
         support.y > fruit.y &&
         Math.hypot(fruit.x-support.x,fruit.y-support.y) <= fruit.r+support.r+1));
