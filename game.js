@@ -25,8 +25,6 @@ const physicsStep = 1 / 180;
 let physicsAccumulator = 0;
 let gold = 0;
 let displayedGold = 0;
-let arrivedGold = 0;
-let goldCounterTimer;
 let endingTimer;
 let overflowSince=new Map();
 const pick = () => Math.floor(Math.random() * 4);
@@ -81,7 +79,6 @@ function start() {
   overflowSince.clear();
   gold = 0;
   displayedGold = 0;
-  arrivedGold = 0;
   el("game-gold-value").textContent = "0g";
   fallingFruit = null;
   settledTime = 0;
@@ -94,8 +91,6 @@ function start() {
   tick(last);
 }
 function stop() {
-  clearInterval(goldCounterTimer);
-  goldCounterTimer = undefined;
   clearTimeout(endingTimer);
   el("round-end").hidden = true;
   el("gold-particles").replaceChildren();
@@ -114,7 +109,7 @@ function collectGold(x, y, amount) {
   const endX = target.left - bounds.left + target.width / 2 - startX;
   const endY = target.top - bounds.top + target.height / 2 - startY;
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const count = reducedMotion ? 1 : 8;
+  const count = amount;
   for (let i = 0; i < count; i++) {
     const piece = document.createElement("img");
     piece.src = "assets/reward-gold.png";
@@ -122,25 +117,19 @@ function collectGold(x, y, amount) {
     piece.style.left = startX + "px";
     piece.style.top = startY + "px";
     layer.append(piece);
+    const direction = i % 2 === 0 ? -1 : 1;
+    const spread = direction * (28 + i * 3);
+    const lift = 34 + (i % 3) * 8;
     const flight = piece.animate([
       {transform:"translate(-50%,-50%) scale(.85)",opacity:1},
-      {transform:"translate(calc(-50% + " + ((i-3.5)*13) + "px),calc(-50% - 38px))",offset:.22},
+      {transform:`translate(calc(-50% + ${spread}px),calc(-50% - ${lift}px))`,offset:.26,easing:"ease-in"},
+      {transform:`translate(calc(-50% + ${endX*.55+spread*.65}px),calc(-50% + ${endY*.48-lift*.35}px)) scale(.95)`,offset:.63},
       {transform:"translate(calc(-50% + " + endX + "px),calc(-50% + " + endY + "px)) scale(.75)",opacity:1}
-    ],{duration:reducedMotion ? 1 : 640,delay:i*30,easing:"ease-in-out",fill:"both"});
+    ],{duration:reducedMotion ? 1 : 640,delay:i*42,easing:"ease-in-out",fill:"both"});
     flight.onfinish = () => {
       if (!piece.isConnected) return;
       piece.remove();
-      if (i !== count-1) return;
-      arrivedGold += amount;
-      if (goldCounterTimer === undefined) {
-        goldCounterTimer = setInterval(() => {
-          el("game-gold-value").textContent = ++displayedGold + "g";
-          if (displayedGold >= arrivedGold) {
-            clearInterval(goldCounterTimer);
-            goldCounterTimer = undefined;
-          }
-        }, 35);
-      }
+      el("game-gold-value").textContent = ++displayedGold + "g";
       if (!reducedMotion) counter.animate([
         {scale:"1.16",boxShadow:"0 0 16px #ffd563"},
         {scale:"1",boxShadow:"none"}
