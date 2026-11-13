@@ -74,7 +74,7 @@ function start() {
   gold = 0;
   timerBonus?.cancel();
   bodies = []; effects = []; aim = W/2; next = pick(); upcoming = pick(); drawUpcoming(); score = 0;
-  last = performance.now(); deadline = last + 20000; dropAt = last;
+  last = performance.now(); deadline = last + 50000; dropAt = last;
   running = true;
   el("score").textContent = "0점";
   board.focus();
