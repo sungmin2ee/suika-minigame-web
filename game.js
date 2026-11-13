@@ -19,6 +19,8 @@ for (const [file] of atlas) {
 let bodies, effects, aim, next, upcoming, score, deadline, last, frame, dropAt;
 let running = false;
 let timerBonus;
+const physicsStep = 1 / 180;
+let physicsAccumulator = 0;
 let gold = 0;
 let overflowSince=new Map();
 const pick = () => Math.floor(Math.random() * 4);
@@ -72,6 +74,7 @@ function start() {
   cancelAnimationFrame(frame);
   overflowSince.clear();
   gold = 0;
+  physicsAccumulator = 0;
   timerBonus?.cancel();
   bodies = []; effects = []; aim = W/2; next = pick(); upcoming = pick(); drawUpcoming(); score = 0;
   last = performance.now(); deadline = last + 50000; dropAt = last;
@@ -111,10 +114,10 @@ function drop() {
   dropAt = now + dropCooldown;
 }
 function constrain(b) {
-  if (b.x < b.r || b.x > W-b.r) b.vx *= -.42;
+  if ((b.x < b.r && b.vx < 0) || (b.x > W-b.r && b.vx > 0)) b.vx *= -.42;
   if (b.y > H-b.r) {
     b.y = H-b.r;
-    b.vy = b.vy > 45 ? -b.vy*.12 : 0;
+    if (b.vy > 0) b.vy = b.vy > 45 ? -b.vy*.12 : 0;
 
   }
   b.x = clamp(b.x,b.r,W-b.r);
@@ -134,7 +137,7 @@ function step(dt,now) {
     b.angle += roll;
 
   }
-  for (let pass=0;pass<4;pass++) {
+  for (let pass=0;pass<12;pass++) {
     for (let i=0;i<bodies.length;i++) {
       for (let j=i+1;j<bodies.length;j++) {
         const a=bodies[i], b=bodies[j], dx=b.x-a.x, dy=b.y-a.y;
@@ -167,7 +170,7 @@ function step(dt,now) {
         const nx=distance ? dx/distance : 1, ny=distance ? dy/distance : 0;
         const totalMass=a.mass+b.mass;
         const shareA=b.mass/totalMass, shareB=a.mass/totalMass;
-        const correction=Math.max(0,overlap-.2)*.8;
+        const correction=Math.max(0,overlap-.25)*.65;
         const moveA=clamp(a.x-nx*correction*shareA,a.r,W-a.r)-a.x;
         const moveB=clamp(b.x+nx*correction*shareB,b.r,W-b.r)-b.x;
         a.angle+=moveA/a.r; b.angle+=moveB/b.r;
@@ -191,8 +194,11 @@ function tick(now) {
   let seconds = Math.max(0,Math.ceil((deadline-now)/1000));
 
   if (seconds===0) { el("time").textContent="0:00"; finish("시간이 다 됐어요"); return; }
-  const dt=Math.min(.04,(now-last)/1000);
-  for (let i=0;i<3;i++) step(dt/3,now);
+  physicsAccumulator += Math.min(.04,(now-last)/1000);
+  while (physicsAccumulator >= physicsStep) {
+    step(physicsStep,now);
+    physicsAccumulator -= physicsStep;
+  }
   seconds = Math.max(0,Math.ceil((deadline-now)/1000));
   el("time").textContent = Math.floor(seconds/60)+":"+String(seconds%60).padStart(2,"0");
   const stacked = new Set(bodies.filter(fruit => fruit.y + fruit.r >= H - 1));
