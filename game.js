@@ -17,7 +17,7 @@ for (const [file] of atlas) {
 }
 let bodies, effects, aim, next, score, deadline, last, frame, dropAt;
 let running = false;
-let fruitScale=1, overflowSince=null;
+let overflowSince=new Map();
 const pick = () => Math.floor(Math.random() * 4);
 const clamp = (value, min, max) => Math.max(min, Math.min(value, max));
 function sprite(index, x, y, w, h, ctx=board.getContext("2d")) {
@@ -67,7 +67,7 @@ function start() {
   if (result.open) result.close();
   if (!game.open) game.showModal();
   cancelAnimationFrame(frame);
-  fruitScale=1; overflowSince=null;
+  overflowSince.clear();
   bodies = []; effects = []; aim = W/2; next = pick(); score = 0;
   last = performance.now(); deadline = last + 60000; dropAt = last;
   running = true;
@@ -90,12 +90,12 @@ function closeGame() {
   if (game.open) game.close();
 }
 function add(type,x,y) {
-  bodies.push({type,x,y,r:sizes[type]*fruitScale,vx:0,vy:0,angle:0,mass:(sizes[type]/sizes[0])**2});
+  bodies.push({type,x,y,r:sizes[type],vx:0,vy:0,angle:0,mass:(sizes[type]/sizes[0])**2});
 }
 function drop() {
   const now = performance.now();
   if (!running || now >= deadline || now < dropAt) return;
-  const r = sizes[next]*fruitScale, x = clamp(aim,r,W-r);
+  const r = sizes[next], x = clamp(aim,r,W-r);
   if (bodies.some(b => Math.hypot(b.x-x,b.y-r) < b.r+r)) {
     return;
   }
@@ -172,20 +172,20 @@ function tick(now) {
   el("time").textContent = Math.floor(seconds/60)+":"+String(seconds%60).padStart(2,"0");
   if (seconds===0) { finish("시간이 다 됐어요"); return; }
   const dt=Math.min(.04,(now-last)/1000);
-  const overflowing=bodies.some(b=>b.y-b.r<warningLine && Math.abs(b.vy)<35 && Math.abs(b.vx)<12);
-  overflowSince=overflowing ? (overflowSince ?? now) : null;
-  const growing=overflowSince!==null && now-overflowSince>=1300;
-  if (growing && fruitScale<1.2) {
-    fruitScale=Math.min(1.2,fruitScale+dt*.04);
-    for (const b of bodies) b.r=sizes[b.type]*fruitScale;
-  }
   for (let i=0;i<3;i++) step(dt/3,now);
+  const aboveLine=bodies.filter(b=>b.y-b.r<warningLine);
+  overflowSince=new Map(aboveLine.map(b=>[b,overflowSince.get(b) ?? now]));
+  const overflowing=aboveLine.length>0;
+  if (aboveLine.some(b=>now-overflowSince.get(b)>=1300)) {
+    finish("과일이 상단 점선을 넘었어요");
+    return;
+  }
   last=now;
   ctx.clearRect(0,0,W,H);
   ctx.strokeStyle=overflowing ? "#ffad63" : "#ffe9ad80";
   ctx.setLineDash([7,5]);
   ctx.beginPath(); ctx.moveTo(0,warningLine); ctx.lineTo(W,warningLine); ctx.stroke();
-  const r=sizes[next]*fruitScale, x=clamp(aim,r,W-r);
+  const r=sizes[next], x=clamp(aim,r,W-r);
   const ready=now>=dropAt;
   ctx.strokeStyle=ready ? "#fff6cf" : "#ffffff35";
   ctx.setLineDash([4,6]);
