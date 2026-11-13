@@ -7,6 +7,7 @@ const colors = ["#6279de","#923882","#ed7028","#ff9b22","#e74a45","#ff9d9f","#b7
 const warningLine = 86;
 const overflowLimit = 1300;
 const dropCooldown = 300;
+const fruitWeights = [1, 1.7, 2.8, 4.3, 6.4, 9.6, 14, 21];
 const sizes = [13,17,22,27,33,41,50,62].map(radius => radius * 1.3);
 const atlas = [["470cf.png",[658.18,-20,-180.61,877.58]],["470cf.png",[382.39,-179.37,-62.68,574.6]],["470cf.png",[381.05,-5.53,-237.41,531.94]],["470cf.png",[326.13,-244.48,-42.64,484.28]],["470cf.png",[291.94,-312.87,-24.73,423.39]],["470cf.png",[317.54,-97.97,-179.24,489.19]],["470cf.png",[246.82,-167.05,-124.09,411.36]],["54635.png",null],["bff02.png",[671.97,-101.34,-124.24,1190.6]],["bff02.png",[434.8,-259.06,-58.97,821.3]],["bff02.png",[291.78,-296.57,-22.52,556.11]],["bff02.png",[245.03,-346.31,-13.64,452.55]],["bff02.png",[245.03,-8.5,-130.5,452.55]],["bff02.png",[245.03,-119.37,-132.41,452.55]],["bff02.png",[245.03,-232.47,-136.44,452.55]],["bff02.png",[245.03,-345.11,-137.39,452.55]]];
 const images = new Map();
@@ -101,7 +102,7 @@ function closeGame() {
   if (game.open) game.close();
 }
 function add(type,x,y) {
-  bodies.push({type,x,y,r:sizes[type],vx:0,vy:0,angle:0,mass:(sizes[type]/sizes[0])**2});
+  bodies.push({type,x,y,r:sizes[type],vx:0,vy:0,angle:0,mass:fruitWeights[type]});
 }
 function drop() {
   const now = performance.now();
@@ -131,7 +132,7 @@ function constrain(b) {
 let settledTime = 0;
 function step(dt,now) {
   if (settledTime >= .35) return;
-  const previousPositions = bodies.map(({x,y}) => ({x,y}));
+  const previousPositions = new Map(bodies.map(fruit => [fruit, {x:fruit.x,y:fruit.y}]));
   for (const b of bodies) {
     const previousX=b.x;
     b.vy += 1300*dt;
@@ -157,7 +158,7 @@ function step(dt,now) {
         if (a.type===b.type) {
           const x=(a.x+b.x)/2, y=(a.y+b.y)/2;
           const mergedType = Math.min(a.type+1,7);
-          const bonusSeconds = a.type<7 && mergedType>=4 ? mergedType-3 : 0;
+          const bonusSeconds = firstContact ? 1 : 0;
           const goldBonus = a.type === 7 ? 10 : 0;
           gold += goldBonus;
           effects.push({x,y,born:now,bonusSeconds,goldBonus,precise:firstContact});
@@ -199,11 +200,21 @@ function step(dt,now) {
     }
     for (const b of bodies) constrain(b);
   }
-  const resting = !fallingFruit && previousPositions.length === bodies.length &&
-    bodies.every((fruit,index) =>
-      Math.hypot(fruit.x-previousPositions[index].x,fruit.y-previousPositions[index].y) < .06 &&
-      Math.hypot(fruit.vx,fruit.vy) < 12);
+  const resting = !fallingFruit && bodies.every(fruit => {
+    const previous = previousPositions.get(fruit);
+    return previous &&
+      Math.hypot(fruit.x-previous.x,fruit.y-previous.y) < .25 &&
+      (fruit.y+fruit.r >= H-1 || bodies.some(support =>
+        support.y > fruit.y &&
+        Math.hypot(fruit.x-support.x,fruit.y-support.y) <= fruit.r+support.r+1));
+  });
   settledTime = resting ? settledTime + dt : 0;
+  if (settledTime >= .35) {
+    for (const fruit of bodies) {
+      fruit.vx = 0;
+      fruit.vy = 0;
+    }
+  }
 }
 function tick(now) {
   if (!running) return;
@@ -302,7 +313,7 @@ function tick(now) {
     ctx.strokeText(title,labelX,labelY);
     ctx.fillText(title,labelX,labelY);
     if (effect.bonusSeconds || effect.goldBonus) {
-      const label = effect.goldBonus ? "+" + effect.goldBonus + "g" : "+" + effect.bonusSeconds + "초";
+      const label = [effect.bonusSeconds && "+1초", effect.goldBonus && "+" + effect.goldBonus + "g"].filter(Boolean).join(" · ");
       ctx.font="900 18px system-ui";
       ctx.fillStyle=effect.goldBonus ? "#ffda71" : "#baf58a";
       ctx.strokeText(label,labelX,labelY+22);
