@@ -5,7 +5,8 @@ const ctx = board.getContext("2d"), W = board.width, H = board.height;
 const fruit = ["🫐","🍑","🟠","🍊","🍎","🍑","🍈","🎃"];
 const colors = ["#6279de","#923882","#ed7028","#ff9b22","#e74a45","#ff9d9f","#b7d764","#f68623"];
 const warningLine = 86;
-const sizes = [13,17,22,27,33,41,50,62];
+const dropCooldown = 300;
+const sizes = [13,17,22,27,33,41,50,62].map(radius => radius * 1.3);
 const atlas = [["470cf.png",[658.18,-20,-180.61,877.58]],["470cf.png",[382.39,-179.37,-62.68,574.6]],["470cf.png",[381.05,-5.53,-237.41,531.94]],["470cf.png",[326.13,-244.48,-42.64,484.28]],["470cf.png",[291.94,-312.87,-24.73,423.39]],["470cf.png",[317.54,-97.97,-179.24,489.19]],["470cf.png",[246.82,-167.05,-124.09,411.36]],["54635.png",null],["bff02.png",[671.97,-101.34,-124.24,1190.6]],["bff02.png",[434.8,-259.06,-58.97,821.3]],["bff02.png",[291.78,-296.57,-22.52,556.11]],["bff02.png",[245.03,-346.31,-13.64,452.55]],["bff02.png",[245.03,-8.5,-130.5,452.55]],["bff02.png",[245.03,-119.37,-132.41,452.55]],["bff02.png",[245.03,-232.47,-136.44,452.55]],["bff02.png",[245.03,-345.11,-137.39,452.55]]];
 const images = new Map();
 for (const [file] of atlas) {
@@ -100,7 +101,7 @@ function drop() {
   }
   add(next,x,r);
   next = pick();
-  dropAt = now + 340;
+  dropAt = now + dropCooldown;
 }
 function constrain(b) {
   if (b.x < b.r || b.x > W-b.r) b.vx *= -.42;
@@ -183,12 +184,16 @@ function tick(now) {
   ctx.setLineDash([7,5]);
   ctx.beginPath(); ctx.moveTo(0,warningLine); ctx.lineTo(W,warningLine); ctx.stroke();
   const r=sizes[next]*fruitScale, x=clamp(aim,r,W-r);
-  ctx.strokeStyle="#ffffff70";
+  const ready=now>=dropAt;
+  ctx.strokeStyle=ready ? "#fff6cf" : "#ffffff35";
   ctx.setLineDash([4,6]);
   ctx.beginPath(); ctx.moveTo(x,r); ctx.lineTo(x,H); ctx.stroke();
   ctx.setLineDash([]);
   for (const b of bodies) drawFruit(b.type,b.x,b.y,b.r,b.angle);
+  ctx.save();
+  ctx.globalAlpha=ready ? 1 : .42;
   drawFruit(next,x,r,r);
+  ctx.restore();
   effects=effects.filter(effect => now-effect.born<400);
   for (const effect of effects) {
     const index=Math.floor((now-effect.born)/50);
