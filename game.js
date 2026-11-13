@@ -103,19 +103,24 @@ function constrain(b) {
   if (b.y > H-b.r) {
     b.y = H-b.r;
     b.vy = Math.min(0,-b.vy*.12);
-    b.spin += (b.vx/b.r-b.spin)*.26;
+
   }
   b.x = clamp(b.x,b.r,W-b.r);
 }
 function step(dt,now) {
   for (const b of bodies) {
+    const previousX=b.x;
     b.vy += 850*dt;
     b.x += b.vx*dt;
     b.y += b.vy*dt;
     b.vx *= Math.exp(-dt*(b.y >= H-b.r-1 ? 3.5 : .4));
-    b.angle += b.spin*dt;
+
     b.spin *= Math.exp(-dt*1.5);
     constrain(b);
+    const onFloor=b.y >= H-b.r-1;
+    const roll=(b.x-previousX)/b.r;
+    b.angle += roll + (onFloor ? 0 : b.spin*dt);
+    if (onFloor) b.spin=0;
   }
   for (let pass=0;pass<4;pass++) {
     for (let i=0;i<bodies.length;i++) {
@@ -144,8 +149,9 @@ function step(dt,now) {
           a.vx-=ny*friction; a.vy+=nx*friction;
           b.vx+=ny*friction; b.vy-=nx*friction;
           a.spin+=friction/a.r; b.spin+=friction/b.r;
-          a.vx+=nx*speed*.64; a.vy+=ny*speed*.64;
-          b.vx-=nx*speed*.64; b.vy-=ny*speed*.64;
+          const side=clamp(-speed*.85,0,240)*(nx || 1);
+          a.vx-=side; a.vy+=ny*speed*.64;
+          b.vx+=side; b.vy-=ny*speed*.64;
         }
       }
     }
