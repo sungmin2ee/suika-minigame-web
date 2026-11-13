@@ -83,7 +83,6 @@ function start() {
   bodies = []; effects = []; aim = W/2; next = 0; upcoming = pick(); drawUpcoming();
   last = performance.now(); deadline = last + 40000; dropAt = last;
   running = true;
-  el("gold").textContent = "0g";
   board.focus();
   tick(last);
 }
@@ -171,7 +170,6 @@ function step(dt,now) {
               {duration:550,easing:"ease-out"}
             );
           }
-          el("gold").textContent = gold + "g";
           bodies.splice(j,1);
           bodies.splice(i,1);
           if (a.type < 7) add(mergedType,x,y);
