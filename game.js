@@ -81,7 +81,7 @@ function start() {
   physicsAccumulator = 0;
   timerBonus?.cancel();
   bodies = []; effects = []; aim = W/2; next = 0; upcoming = pick(); drawUpcoming();
-  last = performance.now(); deadline = last + 30000; dropAt = last;
+  last = performance.now(); deadline = last + 40000; dropAt = last;
   running = true;
   el("gold").textContent = "0g";
   board.focus();
@@ -322,12 +322,17 @@ function tick(now) {
   }
   frame=requestAnimationFrame(tick);
 }
+game.addEventListener("pointermove", point);
+game.addEventListener("pointerup", event => {
+  if (event.button === 0 && !event.target.closest("button")) {
+    point(event);
+    drop();
+  }
+});
 function point(event) {
   const rect=board.getBoundingClientRect();
   aim=(event.clientX-rect.left)*W/rect.width;
 }
-board.addEventListener("pointermove",point);
-board.addEventListener("pointerup",event=>{ if(event.button===0){point(event);drop();} });
 board.addEventListener("keydown",event=>{
   if (!["ArrowLeft","ArrowRight"," ","Enter"].includes(event.key)) return;
   event.preventDefault();
