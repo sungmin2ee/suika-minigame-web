@@ -264,7 +264,22 @@ function step(dt,now) {
     }
     for (const b of bodies) constrain(b);
   }
-  const resting = !fallingFruit && bodies.every(fruit => {
+  let unstableStack = false;
+  for (const fruit of bodies) {
+    if (fruit.y + fruit.r >= H - 1) continue;
+    const supports = bodies.filter(support =>
+      support.y > fruit.y &&
+      Math.hypot(fruit.x - support.x, fruit.y - support.y) <= fruit.r + support.r + 1);
+    if (supports.length !== 1) continue;
+    const offset = fruit.x - supports[0].x;
+    if (Math.abs(offset) > 2) continue;
+    const direction = Math.abs(offset) > .01 ? Math.sign(offset) : (fruit.x < W / 2 ? 1 : -1);
+    const room = direction > 0 ? W - fruit.r - fruit.x : fruit.x - fruit.r;
+    if (room < 1) continue;
+    fruit.vx += direction * 500 * dt;
+    unstableStack = true;
+  }
+  const resting = !fallingFruit && !unstableStack && bodies.every(fruit => {
     const previous = previousPositions.get(fruit);
     return previous &&
       Math.hypot(fruit.x-previous.x,fruit.y-previous.y) < .35 &&
