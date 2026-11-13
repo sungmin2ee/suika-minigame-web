@@ -19,6 +19,7 @@ for (const [file] of atlas) {
 let bodies, effects, aim, next, upcoming, score, deadline, last, frame, dropAt;
 let running = false;
 let timerBonus;
+let gold = 0;
 let overflowSince=new Map();
 const pick = () => Math.floor(Math.random() * 4);
 const clamp = (value, min, max) => Math.max(min, Math.min(value, max));
@@ -70,6 +71,7 @@ function start() {
   if (!game.open) game.showModal();
   cancelAnimationFrame(frame);
   overflowSince.clear();
+  gold = 0;
   timerBonus?.cancel();
   bodies = []; effects = []; aim = W/2; next = pick(); upcoming = pick(); drawUpcoming(); score = 0;
   last = performance.now(); deadline = last + 20000; dropAt = last;
@@ -84,7 +86,7 @@ function stop() {
 }
 function finish(message) {
   stop();
-  el("summary").textContent = message + " · " + score + "점";
+  el("summary").textContent = message + " · " + score + "점 · 골드 " + gold + "g";
   result.showModal();
 }
 function closeGame() {
@@ -141,8 +143,10 @@ function step(dt,now) {
         if (a.type===b.type) {
           const x=(a.x+b.x)/2, y=(a.y+b.y)/2;
           const mergedType = Math.min(a.type+1,7);
-          const bonusSeconds = a.type<7 && mergedType>=5 ? 1 : 0;
-          effects.push({x,y,born:now,bonusSeconds});
+          const bonusSeconds = a.type<7 && mergedType>=5 ? mergedType-4 : 0;
+          const goldBonus = a.type === 7 ? 10 : 0;
+          gold += goldBonus;
+          effects.push({x,y,born:now,bonusSeconds,goldBonus});
           score += 10*(a.type+1);
           if (bonusSeconds) {
             deadline += bonusSeconds * 1000;
@@ -273,10 +277,10 @@ function tick(now) {
     const labelY=Math.max(16,effect.y-23-progress*27);
     ctx.strokeText("GOOD!",labelX,labelY);
     ctx.fillText("GOOD!",labelX,labelY);
-    if (effect.bonusSeconds) {
-      const label = "+" + effect.bonusSeconds + "초";
+    if (effect.bonusSeconds || effect.goldBonus) {
+      const label = effect.goldBonus ? "+" + effect.goldBonus + "g" : "+" + effect.bonusSeconds + "초";
       ctx.font="900 18px system-ui";
-      ctx.fillStyle="#baf58a";
+      ctx.fillStyle=effect.goldBonus ? "#ffda71" : "#baf58a";
       ctx.strokeText(label,labelX,labelY+22);
       ctx.fillText(label,labelX,labelY+22);
     }
