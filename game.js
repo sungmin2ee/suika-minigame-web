@@ -15,7 +15,7 @@ for (const [file] of atlas) {
   image.src = "assets/" + file;
   images.set(file, image);
 }
-let bodies, effects, aim, next, score, deadline, last, frame, dropAt;
+let bodies, effects, aim, next, upcoming, score, deadline, last, frame, dropAt;
 let running = false;
 let overflowSince=new Map();
 const pick = () => Math.floor(Math.random() * 4);
@@ -68,7 +68,7 @@ function start() {
   if (!game.open) game.showModal();
   cancelAnimationFrame(frame);
   overflowSince.clear();
-  bodies = []; effects = []; aim = W/2; next = pick(); score = 0;
+  bodies = []; effects = []; aim = W/2; next = pick(); upcoming = pick(); drawUpcoming(); score = 0;
   last = performance.now(); deadline = last + 60000; dropAt = last;
   running = true;
   el("score").textContent = "0점";
@@ -100,7 +100,9 @@ function drop() {
     return;
   }
   add(next,x,r);
-  next = pick();
+  next = upcoming;
+  upcoming = pick();
+  drawUpcoming();
   dropAt = now + dropCooldown;
 }
 function constrain(b) {
@@ -265,3 +267,13 @@ fruitNames.forEach((name,type)=>{
   image.addEventListener("load",paint,{once:true});
   paint();
 });
+
+function drawUpcoming() {
+  if (upcoming === undefined) return;
+  const icon=el("upcoming-icon");
+  const context=icon.getContext("2d");
+  context.clearRect(0,0,64,64);
+  paintFruit(upcoming,32,32,28,context);
+  el("upcoming").setAttribute("aria-label","다음 과일 "+fruitNames[upcoming]);
+}
+for (const image of images.values()) image.addEventListener("load",drawUpcoming);
