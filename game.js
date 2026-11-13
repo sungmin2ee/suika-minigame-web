@@ -177,8 +177,9 @@ function constrain(b) {
   if ((b.x < b.r && b.vx < 0) || (b.x > W-b.r && b.vx > 0)) b.vx *= -.42;
   if (b.y > H-b.r) {
     b.y = H-b.r;
-    if (b === fallingFruit) fallingFruit = null;
-    if (b.vy > 0) b.vy = 0;
+    const firstLanding = b === fallingFruit;
+    if (firstLanding) fallingFruit = null;
+    if (b.vy > 0) b.vy = firstLanding ? -Math.min(b.vy * .09, 65) : 0;
 
   }
   b.x = clamp(b.x,b.r,W-b.r);
@@ -235,7 +236,7 @@ function step(dt,now) {
             const distance = Math.hypot(offsetX, fruit.y - y);
             if (distance >= shockRadius || distance === 0) continue;
             const falloff = 1 - distance / shockRadius;
-            fruit.vx += 55 * falloff * (offsetX / distance) / Math.sqrt(fruit.mass);
+            fruit.vx += 72 * falloff * (offsetX / distance) / Math.sqrt(fruit.mass);
           }
           if (a.type < 7) add(mergedType,x,y);
           i--;
