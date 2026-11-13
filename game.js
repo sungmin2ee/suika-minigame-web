@@ -405,8 +405,11 @@ function tick(now) {
 document.addEventListener("pointermove", event => {
   if (running && game.open) point(event);
 });
+game.addEventListener("pointerdown", event => {
+  if (running && event.isPrimary && !event.target.closest("button")) point(event);
+});
 document.addEventListener("pointerup", event => {
-  if (running && game.open && event.button === 0 && !event.target.closest("button")) {
+  if (running && game.open && event.isPrimary && event.button === 0 && !event.target.closest("button")) {
     point(event);
     drop();
   }
