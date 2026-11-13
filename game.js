@@ -4,6 +4,7 @@ const game = el("game"), result = el("result"), board = el("board");
 const ctx = board.getContext("2d"), W = board.width, H = board.height;
 const fruit = ["🫐","🍑","🟠","🍊","🍎","🍑","🍈","🎃"];
 const colors = ["#6279de","#923882","#ed7028","#ff9b22","#e74a45","#ff9d9f","#b7d764","#f68623"];
+const warningLine = 86;
 const sizes = [13,17,22,27,33,41,50,62];
 const atlas = [["470cf.png",[658.18,-20,-180.61,877.58]],["470cf.png",[382.39,-179.37,-62.68,574.6]],["470cf.png",[381.05,-5.53,-237.41,531.94]],["470cf.png",[326.13,-244.48,-42.64,484.28]],["470cf.png",[291.94,-312.87,-24.73,423.39]],["470cf.png",[317.54,-97.97,-179.24,489.19]],["470cf.png",[246.82,-167.05,-124.09,411.36]],["54635.png",null],["bff02.png",[671.97,-101.34,-124.24,1190.6]],["bff02.png",[434.8,-259.06,-58.97,821.3]],["bff02.png",[291.78,-296.57,-22.52,556.11]],["bff02.png",[245.03,-346.31,-13.64,452.55]],["bff02.png",[245.03,-8.5,-130.5,452.55]],["bff02.png",[245.03,-119.37,-132.41,452.55]],["bff02.png",[245.03,-232.47,-136.44,452.55]],["bff02.png",[245.03,-345.11,-137.39,452.55]]];
 const images = new Map();
@@ -15,6 +16,7 @@ for (const [file] of atlas) {
 }
 let bodies, effects, aim, next, score, deadline, last, frame, dropAt;
 let running = false;
+let fruitScale=1, overflowSince=null;
 const pick = () => Math.floor(Math.random() * 4);
 const clamp = (value, min, max) => Math.max(min, Math.min(value, max));
 function sprite(index, x, y, w, h, ctx=board.getContext("2d")) {
@@ -35,7 +37,8 @@ function sprite(index, x, y, w, h, ctx=board.getContext("2d")) {
   return true;
 }
 function paintFruit(type,x,y,r,ctx=board.getContext("2d")) {
-  if (sprite(type,x-r,y-r,2*r,2*r,ctx)) return;
+  const width=type===6 ? r*1.76 : r*2;
+  if (sprite(type,x-width/2,y-r,width,2*r,ctx)) return;
   const shade = ctx.createRadialGradient(x-r*.35,y-r*.45,1,x,y,r);
   shade.addColorStop(0,"#fff0c9");
   shade.addColorStop(.35,colors[type]);
@@ -62,6 +65,7 @@ function start() {
   if (result.open) result.close();
   if (!game.open) game.showModal();
   cancelAnimationFrame(frame);
+  fruitScale=1; overflowSince=null;
   bodies = []; effects = []; aim = W/2; next = pick(); score = 0;
   last = performance.now(); deadline = last + 60000; dropAt = last;
   running = true;
@@ -84,14 +88,13 @@ function closeGame() {
   if (game.open) game.close();
 }
 function add(type,x,y) {
-  bodies.push({type,x,y,r:sizes[type],vx:0,vy:0,angle:0,mass:(sizes[type]/sizes[0])**2});
+  bodies.push({type,x,y,r:sizes[type]*fruitScale,vx:0,vy:0,angle:0,mass:(sizes[type]/sizes[0])**2});
 }
 function drop() {
   const now = performance.now();
   if (!running || now >= deadline || now < dropAt) return;
-  const r = sizes[next], x = clamp(aim,r,W-r);
+  const r = sizes[next]*fruitScale, x = clamp(aim,r,W-r);
   if (bodies.some(b => Math.hypot(b.x-x,b.y-r) < b.r+r)) {
-    finish("과일이 가득 찼어요");
     return;
   }
   add(next,x,r);
@@ -135,7 +138,7 @@ function step(dt,now) {
           el("score").textContent = score + "점";
           bodies.splice(j,1);
           bodies.splice(i,1);
-          if (a.type<7) add(a.type+1,x,y);
+          add(Math.min(a.type+1,7),x,y);
           i--;
           break;
         }
@@ -165,10 +168,20 @@ function tick(now) {
   el("time").textContent = Math.floor(seconds/60)+":"+String(seconds%60).padStart(2,"0");
   if (seconds===0) { finish("시간이 다 됐어요"); return; }
   const dt=Math.min(.04,(now-last)/1000);
+  const overflowing=bodies.some(b=>b.y-b.r<warningLine && Math.abs(b.vy)<35);
+  overflowSince=overflowing ? (overflowSince ?? now) : null;
+  const growing=overflowSince!==null && now-overflowSince>=1300;
+  if (growing && fruitScale<1.2) {
+    fruitScale=Math.min(1.2,fruitScale+dt*.04);
+    for (const b of bodies) b.r=sizes[b.type]*fruitScale;
+  }
   for (let i=0;i<3;i++) step(dt/3,now);
   last=now;
   ctx.clearRect(0,0,W,H);
-  const r=sizes[next], x=clamp(aim,r,W-r);
+  ctx.strokeStyle=overflowing ? "#ffad63" : "#ffe9ad80";
+  ctx.setLineDash([7,5]);
+  ctx.beginPath(); ctx.moveTo(0,warningLine); ctx.lineTo(W,warningLine); ctx.stroke();
+  const r=sizes[next]*fruitScale, x=clamp(aim,r,W-r);
   ctx.strokeStyle="#ffffff70";
   ctx.setLineDash([4,6]);
   ctx.beginPath(); ctx.moveTo(x,r); ctx.lineTo(x,H); ctx.stroke();
