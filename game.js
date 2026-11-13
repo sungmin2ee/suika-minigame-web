@@ -18,7 +18,7 @@ for (const [file] of atlas) {
 }
 let bodies, effects, aim, next, upcoming, score, deadline, last, frame, dropAt;
 let running = false;
-let dropId = 0;
+let chain = 0;
 let overflowSince=new Map();
 const pick = () => Math.floor(Math.random() * 4);
 const clamp = (value, min, max) => Math.max(min, Math.min(value, max));
@@ -70,7 +70,7 @@ function start() {
   if (!game.open) game.showModal();
   cancelAnimationFrame(frame);
   overflowSince.clear();
-  dropId = 0;
+  chain = 0;
   bodies = []; effects = []; aim = W/2; next = pick(); upcoming = pick(); drawUpcoming(); score = 0;
   last = performance.now(); deadline = last + 60000; dropAt = last;
   running = true;
@@ -103,7 +103,7 @@ function drop() {
     return;
   }
   add(next,x,r);
-  Object.assign(bodies.at(-1), { dropId: ++dropId, chain: 0 });
+  chain = 0;
   next = upcoming;
   upcoming = pick();
   drawUpcoming();
@@ -141,10 +141,7 @@ function step(dt,now) {
         if (overlap < 0) continue;
         if (a.type===b.type) {
           const x=(a.x+b.x)/2, y=(a.y+b.y)/2;
-          const origin = (a.dropId ?? 0) === (b.dropId ?? 0)
-            ? ((a.chain ?? 0) >= (b.chain ?? 0) ? a : b)
-            : ((a.dropId ?? 0) > (b.dropId ?? 0) ? a : b);
-          const chain = (origin.chain ?? 0) + 1;
+          chain++;
           const multiplier = chain >= 3 ? 2 : chain === 2 ? 1.5 : 1;
           effects.push({x,y,born:now,chain,multiplier});
           score += 10*(a.type+1)*multiplier;
@@ -152,7 +149,6 @@ function step(dt,now) {
           bodies.splice(j,1);
           bodies.splice(i,1);
           add(Math.min(a.type+1,7),x,y);
-          Object.assign(bodies.at(-1), { dropId: origin.dropId, chain });
           i--;
           break;
         }
@@ -185,7 +181,16 @@ function tick(now) {
   if (seconds===0) { finish("시간이 다 됐어요"); return; }
   const dt=Math.min(.04,(now-last)/1000);
   for (let i=0;i<3;i++) step(dt/3,now);
-  const aboveLine=bodies.filter(b=>b.y-b.r<warningLine);
+  const stacked = new Set(bodies.filter(fruit => fruit.y + fruit.r >= H - 1));
+  for (const support of stacked) {
+    for (const fruit of bodies) {
+      if (fruit.y < support.y &&
+          Math.hypot(fruit.x-support.x, fruit.y-support.y) <= fruit.r+support.r+1) {
+        stacked.add(fruit);
+      }
+    }
+  }
+  const aboveLine = [...stacked].filter(fruit => fruit.y - fruit.r < warningLine);
   overflowSince=new Map(aboveLine.map(b=>[b,overflowSince.get(b) ?? now]));
   const overflowing=aboveLine.length>0;
   if (aboveLine.some(b=>now-overflowSince.get(b)>=overflowLimit)) {
