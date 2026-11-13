@@ -18,7 +18,6 @@ for (const [file] of atlas) {
 }
 let bodies, effects, aim, next, upcoming, score, deadline, last, frame, dropAt;
 let running = false;
-let chain = 0;
 let overflowSince=new Map();
 const pick = () => Math.floor(Math.random() * 4);
 const clamp = (value, min, max) => Math.max(min, Math.min(value, max));
@@ -70,7 +69,6 @@ function start() {
   if (!game.open) game.showModal();
   cancelAnimationFrame(frame);
   overflowSince.clear();
-  chain = 0;
   bodies = []; effects = []; aim = W/2; next = pick(); upcoming = pick(); drawUpcoming(); score = 0;
   last = performance.now(); deadline = last + 60000; dropAt = last;
   running = true;
@@ -103,7 +101,6 @@ function drop() {
     return;
   }
   add(next,x,r);
-  chain = 0;
   next = upcoming;
   upcoming = pick();
   drawUpcoming();
@@ -141,10 +138,8 @@ function step(dt,now) {
         if (overlap < 0) continue;
         if (a.type===b.type) {
           const x=(a.x+b.x)/2, y=(a.y+b.y)/2;
-          chain++;
-          const multiplier = chain >= 3 ? 2 : chain === 2 ? 1.5 : 1;
-          effects.push({x,y,born:now,chain,multiplier});
-          score += 10*(a.type+1)*multiplier;
+          effects.push({x,y,born:now});
+          score += 10*(a.type+1);
           el("score").textContent = score + "점";
           bodies.splice(j,1);
           bodies.splice(i,1);
@@ -263,12 +258,6 @@ function tick(now) {
     const labelY=Math.max(16,effect.y-23-progress*27);
     ctx.strokeText("GOOD!",labelX,labelY);
     ctx.fillText("GOOD!",labelX,labelY);
-    if (effect.chain>1) {
-      const label=effect.chain+"연쇄 ×"+effect.multiplier;
-      ctx.font="900 18px system-ui";
-      ctx.strokeText(label,labelX,labelY+23);
-      ctx.fillText(label,labelX,labelY+23);
-    }
     ctx.restore();
   }
   frame=requestAnimationFrame(tick);
