@@ -107,7 +107,7 @@ function constrain(b) {
   if (b.x < b.r || b.x > W-b.r) b.vx *= -.42;
   if (b.y > H-b.r) {
     b.y = H-b.r;
-    b.vy = Math.min(0,-b.vy*.12);
+    b.vy = b.vy > 45 ? -b.vy*.12 : 0;
 
   }
   b.x = clamp(b.x,b.r,W-b.r);
@@ -147,15 +147,17 @@ function step(dt,now) {
         const nx=distance ? dx/distance : 1, ny=distance ? dy/distance : 0;
         const totalMass=a.mass+b.mass;
         const shareA=b.mass/totalMass, shareB=a.mass/totalMass;
-        const moveA=clamp(a.x-nx*overlap*shareA,a.r,W-a.r)-a.x;
-        const moveB=clamp(b.x+nx*overlap*shareB,b.r,W-b.r)-b.x;
+        const correction=Math.max(0,overlap-.2)*.8;
+        const moveA=clamp(a.x-nx*correction*shareA,a.r,W-a.r)-a.x;
+        const moveB=clamp(b.x+nx*correction*shareB,b.r,W-b.r)-b.x;
         a.angle+=moveA/a.r; b.angle+=moveB/b.r;
-        a.x+=moveA; a.y-=ny*overlap*shareA;
-        b.x+=moveB; b.y+=ny*overlap*shareB;
+        a.x+=moveA; a.y-=ny*correction*shareA;
+        b.x+=moveB; b.y+=ny*correction*shareB;
         const speed=(b.vx-a.vx)*nx+(b.vy-a.vy)*ny;
         if (speed<0) {
-          const side=clamp(-speed*1.7,0,480)*(nx || 1);
-          const vertical=ny*speed*1.28;
+          const hardImpact=speed < -45 && pass===0;
+          const side=hardImpact ? Math.min(-speed*1.7,480)*(nx || 1) : -speed*nx;
+          const vertical=ny*speed*(hardImpact ? 1.28 : 1);
           a.vx-=side*shareA; a.vy+=vertical*shareA;
           b.vx+=side*shareB; b.vy-=vertical*shareB;
         }
@@ -170,7 +172,7 @@ function tick(now) {
   el("time").textContent = Math.floor(seconds/60)+":"+String(seconds%60).padStart(2,"0");
   if (seconds===0) { finish("시간이 다 됐어요"); return; }
   const dt=Math.min(.04,(now-last)/1000);
-  const overflowing=bodies.some(b=>b.y-b.r<warningLine && Math.abs(b.vy)<35);
+  const overflowing=bodies.some(b=>b.y-b.r<warningLine && Math.abs(b.vy)<35 && Math.abs(b.vx)<12);
   overflowSince=overflowing ? (overflowSince ?? now) : null;
   const growing=overflowSince!==null && now-overflowSince>=1300;
   if (growing && fruitScale<1.2) {
