@@ -81,7 +81,7 @@ function start() {
   physicsAccumulator = 0;
   timerBonus?.cancel();
   bodies = []; effects = []; aim = W/2; next = 0; upcoming = pick(); drawUpcoming();
-  last = performance.now(); deadline = last + 40000; dropAt = last;
+  last = performance.now(); deadline = last + 50000; dropAt = last;
   running = true;
   board.focus();
   tick(last);
@@ -92,7 +92,7 @@ function stop() {
 }
 function finish(message) {
   stop();
-  el("summary").textContent = message;
+  el("result-title").textContent = message;
   el("reward-earned").textContent = gold + "g";
   el("reward-double").textContent = gold * 2 + "g";
   result.showModal();
@@ -219,7 +219,7 @@ function tick(now) {
   if (!running) return;
   let seconds = Math.max(0,Math.ceil((deadline-now)/1000));
 
-  if (seconds===0) { el("time").textContent="0:00"; finish("시간이 다 됐어요"); return; }
+  if (seconds===0) { el("time").textContent="0:00"; finish("시간 초과"); return; }
   physicsAccumulator += Math.min(.04,(now-last)/1000);
   while (physicsAccumulator >= physicsStep) {
     step(physicsStep,now);
