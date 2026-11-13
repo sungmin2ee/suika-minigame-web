@@ -34,7 +34,7 @@ function sprite(index, x, y, w, h) {
   ctx.restore();
   return true;
 }
-function drawFruit(type,x,y,r) {
+function paintFruit(type,x,y,r) {
   if (sprite(type,x-r,y-r,2*r,2*r)) return;
   const shade = ctx.createRadialGradient(x-r*.35,y-r*.45,1,x,y,r);
   shade.addColorStop(0,"#fff0c9");
@@ -50,6 +50,13 @@ function drawFruit(type,x,y,r) {
     ctx.textBaseline = "middle";
     ctx.fillText(fruit[type],x,y);
   }
+}
+function drawFruit(type,x,y,r,angle=0) {
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.rotate(angle);
+  paintFruit(type,0,0,r);
+  ctx.restore();
 }
 function start() {
   if (result.open) result.close();
@@ -77,7 +84,7 @@ function closeGame() {
   if (game.open) game.close();
 }
 function add(type,x,y) {
-  bodies.push({type,x,y,r:sizes[type],vx:0,vy:0});
+  bodies.push({type,x,y,r:sizes[type],vx:0,vy:0,angle:0,spin:0});
 }
 function drop() {
   const now = performance.now();
@@ -92,11 +99,11 @@ function drop() {
   dropAt = now + 340;
 }
 function constrain(b) {
-  if (b.x < b.r || b.x > W-b.r) b.vx *= -.22;
+  if (b.x < b.r || b.x > W-b.r) b.vx *= -.42;
   if (b.y > H-b.r) {
     b.y = H-b.r;
     b.vy = Math.min(0,-b.vy*.12);
-    b.vx *= .8;
+    b.spin += (b.vx/b.r-b.spin)*.26;
   }
   b.x = clamp(b.x,b.r,W-b.r);
 }
@@ -105,7 +112,9 @@ function step(dt,now) {
     b.vy += 850*dt;
     b.x += b.vx*dt;
     b.y += b.vy*dt;
-    b.vx *= .995;
+    b.vx *= Math.exp(-dt*(b.y >= H-b.r-1 ? 3.5 : .4));
+    b.angle += b.spin*dt;
+    b.spin *= Math.exp(-dt*1.5);
     constrain(b);
   }
   for (let pass=0;pass<4;pass++) {
@@ -130,8 +139,13 @@ function step(dt,now) {
         b.x+=nx*overlap/2; b.y+=ny*overlap/2;
         const speed=(b.vx-a.vx)*nx+(b.vy-a.vy)*ny;
         if (speed<0) {
-          a.vx+=nx*speed*.55; a.vy+=ny*speed*.55;
-          b.vx-=nx*speed*.55; b.vy-=ny*speed*.55;
+          const tangent=(b.vx-a.vx)*(-ny)+(b.vy-a.vy)*nx;
+          const friction=clamp(tangent*.16,speed*.24,-speed*.24);
+          a.vx-=ny*friction; a.vy+=nx*friction;
+          b.vx+=ny*friction; b.vy-=nx*friction;
+          a.spin+=friction/a.r; b.spin+=friction/b.r;
+          a.vx+=nx*speed*.64; a.vy+=ny*speed*.64;
+          b.vx-=nx*speed*.64; b.vy-=ny*speed*.64;
         }
       }
     }
@@ -152,7 +166,7 @@ function tick(now) {
   ctx.setLineDash([4,6]);
   ctx.beginPath(); ctx.moveTo(x,r); ctx.lineTo(x,H); ctx.stroke();
   ctx.setLineDash([]);
-  for (const b of bodies) drawFruit(b.type,b.x,b.y,b.r);
+  for (const b of bodies) drawFruit(b.type,b.x,b.y,b.r,b.angle);
   drawFruit(next,x,r,r);
   effects=effects.filter(effect => now-effect.born<400);
   for (const effect of effects) {
