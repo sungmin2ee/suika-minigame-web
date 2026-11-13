@@ -147,15 +147,16 @@ function step(dt,now) {
         const a=bodies[i], b=bodies[j], dx=b.x-a.x, dy=b.y-a.y;
         const distance=Math.hypot(dx,dy), overlap=a.r+b.r-distance;
         if (overlap < 0) continue;
-        if (a === fallingFruit || b === fallingFruit) fallingFruit = null;
+        const firstContact = a === fallingFruit || b === fallingFruit;
+        if (firstContact) fallingFruit = null;
         if (a.type===b.type) {
           const x=(a.x+b.x)/2, y=(a.y+b.y)/2;
           const mergedType = Math.min(a.type+1,7);
           const bonusSeconds = a.type<7 && mergedType>=4 ? mergedType-3 : 0;
           const goldBonus = a.type === 7 ? 10 : 0;
           gold += goldBonus;
-          effects.push({x,y,born:now,bonusSeconds,goldBonus});
-          score += 10*(a.type+1);
+          effects.push({x,y,born:now,bonusSeconds,goldBonus,precise:firstContact});
+          score += 10*(a.type+1)*(firstContact ? 2 : 1);
           if (bonusSeconds) {
             deadline += bonusSeconds * 1000;
             timerBonus?.cancel();
@@ -286,8 +287,10 @@ function tick(now) {
     ctx.fillStyle="#ffdf66";
     const labelX=clamp(effect.x,65,W-65);
     const labelY=Math.max(16,effect.y-23-progress*27);
-    ctx.strokeText("GOOD!",labelX,labelY);
-    ctx.fillText("GOOD!",labelX,labelY);
+    const title = effect.precise ? "정확한 합체 ×2" : "GOOD!";
+    if (effect.precise) ctx.font="900 18px system-ui";
+    ctx.strokeText(title,labelX,labelY);
+    ctx.fillText(title,labelX,labelY);
     if (effect.bonusSeconds || effect.goldBonus) {
       const label = effect.goldBonus ? "+" + effect.goldBonus + "g" : "+" + effect.bonusSeconds + "초";
       ctx.font="900 18px system-ui";
