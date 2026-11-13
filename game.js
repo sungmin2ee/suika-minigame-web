@@ -2,14 +2,14 @@
 const el = id => document.getElementById(id);
 const game = el("game"), result = el("result"), board = el("board");
 const ctx = board.getContext("2d"), W = board.width, H = board.height;
-const fruit = ["🫐","🍑","🟠","🍊","🍎","🍑","🍈","🎃"];
+const fruit = ["🫐","🍑","🍋","🍊","🍎","🍑","🍈","🎃"];
 const colors = ["#6279de","#923882","#ed7028","#ff9b22","#e74a45","#ff9d9f","#b7d764","#f68623"];
 const warningLine = 86;
 const overflowLimit = 1300;
 const dropCooldown = 300;
 const fruitWeights = [1, 1.7, 2.8, 4.3, 6.4, 9.6, 14, 21];
 const sizes = [13,17,22,27,33,41,50,62].map(radius => radius * 1.3);
-const atlas = [["470cf.webp",[658.18,-20,-180.61,877.58]],["470cf.webp",[382.39,-179.37,-62.68,574.6]],["470cf.webp",[381.05,-5.53,-237.41,531.94]],["470cf.webp",[326.13,-244.48,-42.64,484.28]],["470cf.webp",[291.94,-312.87,-24.73,423.39]],["470cf.webp",[317.54,-97.97,-179.24,489.19]],["470cf.webp",[246.82,-167.05,-124.09,411.36]],["54635.webp",null],["bff02.webp",[671.97,-101.34,-124.24,1190.6]],["bff02.webp",[434.8,-259.06,-58.97,821.3]],["bff02.webp",[291.78,-296.57,-22.52,556.11]],["bff02.webp",[245.03,-346.31,-13.64,452.55]],["bff02.webp",[245.03,-8.5,-130.5,452.55]],["bff02.webp",[245.03,-119.37,-132.41,452.55]],["bff02.webp",[245.03,-232.47,-136.44,452.55]],["bff02.webp",[245.03,-345.11,-137.39,452.55]]];
+const atlas = [["470cf.webp",[658.18,-20,-180.61,877.58]],["470cf.webp",[382.39,-179.37,-62.68,574.6]],["lemon.webp",null],["470cf.webp",[326.13,-244.48,-42.64,484.28]],["470cf.webp",[291.94,-312.87,-24.73,423.39]],["470cf.webp",[317.54,-97.97,-179.24,489.19]],["470cf.webp",[246.82,-167.05,-124.09,411.36]],["54635.webp",null],["bff02.webp",[671.97,-101.34,-124.24,1190.6]],["bff02.webp",[434.8,-259.06,-58.97,821.3]],["bff02.webp",[291.78,-296.57,-22.52,556.11]],["bff02.webp",[245.03,-346.31,-13.64,452.55]],["bff02.webp",[245.03,-8.5,-130.5,452.55]],["bff02.webp",[245.03,-119.37,-132.41,452.55]],["bff02.webp",[245.03,-232.47,-136.44,452.55]],["bff02.webp",[245.03,-345.11,-137.39,452.55]]];
 const images = new Map();
 for (const [file] of atlas) {
   if (images.has(file)) continue;
@@ -17,7 +17,7 @@ for (const [file] of atlas) {
   image.src = "assets/" + file;
   images.set(file, image);
 }
-const collisionRadii = sizes.map((radius, type) => type === 0 ? radius * .87 : radius);
+const collisionRadii = sizes.map((radius, type) => radius * ([.87, 1, .92][type] ?? 1));
 let bodies, effects, aim, next, upcoming, deadline, last, frame, dropAt;
 let running = false;
 let timerBonus;
@@ -50,7 +50,8 @@ function sprite(index, x, y, w, h, ctx=board.getContext("2d")) {
 function paintFruit(type,x,y,r,ctx=board.getContext("2d")) {
   const width=type===6 ? r*1.56 : r*2;
   const height=type===6 ? r*2.12 : r*2;
-  if (sprite(type,x-width/2,y+r-height,width,height,ctx)) return;
+  if (type === 2 && sprite(type,x-r*1.64,y-r*1.64,r*3.28,r*3.28,ctx)) return;
+  if (type !== 2 && sprite(type,x-width/2,y+r-height,width,height,ctx)) return;
   const shade = ctx.createRadialGradient(x-r*.35,y-r*.45,1,x,y,r);
   shade.addColorStop(0,"#fff0c9");
   shade.addColorStop(.35,colors[type]);
@@ -59,7 +60,7 @@ function paintFruit(type,x,y,r,ctx=board.getContext("2d")) {
   ctx.beginPath();
   ctx.arc(x,y,r,0,Math.PI*2);
   ctx.fill();
-  if (type !== 1 && type !== 2) {
+  if (type !== 1) {
     ctx.font = r + "px system-ui";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -436,7 +437,7 @@ for (const dialog of [game,result]) dialog.addEventListener("cancel",event=>{
 });
 
 
-const fruitNames=["블루베리","자두","감","오렌지","사과","복숭아","멜론","호박"];
+const fruitNames=["블루베리","자두","레몬","오렌지","사과","복숭아","멜론","호박"];
 fruitNames.forEach((name,type)=>{
   const item=document.createElement("li");
   item.setAttribute("aria-label",name);
