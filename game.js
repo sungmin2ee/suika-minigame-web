@@ -191,7 +191,7 @@ function step(dt,now) {
   const previousPositions = new Map(bodies.map(fruit => [fruit, {x:fruit.x,y:fruit.y}]));
   for (const b of bodies) {
     const previousX=b.x;
-    b.vy += 1300*dt;
+    b.vy += (b === fallingFruit ? 1300 : 850) * dt;
     b.x += b.vx*dt;
     b.y += b.vy*dt;
     b.vx *= Math.exp(-dt*(b.y >= H-b.r-1 ? 3.5 : .4));
