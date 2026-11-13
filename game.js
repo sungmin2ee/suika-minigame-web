@@ -157,7 +157,7 @@ function tick(now) {
   effects=effects.filter(effect => now-effect.born<400);
   for (const effect of effects) {
     const index=Math.floor((now-effect.born)/50);
-    if (sprite(8+index,effect.x-48,effect.y-48,96,96)) continue;
+    if (!sprite(8+index,effect.x-48,effect.y-48,96,96)) {
     ctx.fillStyle="rgba(255,236,156,"+(1-index/8)+")";
     for (let i=0;i<8;i++) {
       const angle=i*Math.PI/4, d=7+index*5;
@@ -165,6 +165,22 @@ function tick(now) {
       ctx.arc(effect.x+Math.cos(angle)*d,effect.y+Math.sin(angle)*d,5-index*.4,0,Math.PI*2);
       ctx.fill();
     }
+    }
+    const progress=(now-effect.born)/400;
+    ctx.save();
+    ctx.globalAlpha=Math.min(1,(1-progress)*3);
+    ctx.font="900 24px system-ui";
+    ctx.textAlign="center";
+    ctx.textBaseline="middle";
+    ctx.lineJoin="round";
+    ctx.lineWidth=4;
+    ctx.strokeStyle="#51290f";
+    ctx.fillStyle="#ffdf66";
+    const labelX=clamp(effect.x,42,W-42);
+    const labelY=Math.max(16,effect.y-23-progress*27);
+    ctx.strokeText("GOOD!",labelX,labelY);
+    ctx.fillText("GOOD!",labelX,labelY);
+    ctx.restore();
   }
   frame=requestAnimationFrame(tick);
 }
@@ -190,3 +206,4 @@ for (const dialog of [game,result]) dialog.addEventListener("cancel",event=>{
   event.preventDefault();
   closeGame();
 });
+
