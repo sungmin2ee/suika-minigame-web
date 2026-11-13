@@ -17,7 +17,7 @@ for (const [file] of atlas) {
   image.src = "assets/" + file;
   images.set(file, image);
 }
-let bodies, effects, aim, next, upcoming, score, deadline, last, frame, dropAt;
+let bodies, effects, aim, next, upcoming, deadline, last, frame, dropAt;
 let running = false;
 let timerBonus;
 let fallingFruit;
@@ -80,10 +80,10 @@ function start() {
   settledTime = 0;
   physicsAccumulator = 0;
   timerBonus?.cancel();
-  bodies = []; effects = []; aim = W/2; next = 0; upcoming = pick(); drawUpcoming(); score = 0;
+  bodies = []; effects = []; aim = W/2; next = 0; upcoming = pick(); drawUpcoming();
   last = performance.now(); deadline = last + 30000; dropAt = last;
   running = true;
-  el("score").textContent = "0점";
+  el("gold").textContent = "0g";
   board.focus();
   tick(last);
 }
@@ -93,7 +93,7 @@ function stop() {
 }
 function finish(message) {
   stop();
-  el("summary").textContent = message + " · " + score + "점 · 골드 " + gold + "g";
+  el("summary").textContent = message + " · " + "골드 " + gold + "g";
   result.showModal();
 }
 function closeGame() {
@@ -159,10 +159,9 @@ function step(dt,now) {
           const x=(a.x+b.x)/2, y=(a.y+b.y)/2;
           const mergedType = Math.min(a.type+1,7);
           const bonusSeconds = firstContact ? 1 : 0;
-          const goldBonus = a.type === 7 ? 10 : 0;
+          const goldBonus = a.type === 7 ? 20 : mergedType === 7 ? 10 : 0;
           gold += goldBonus;
           effects.push({x,y,born:now,bonusSeconds,goldBonus,precise:firstContact});
-          score += 10*(a.type+1)*(firstContact ? 2 : 1);
           if (bonusSeconds) {
             deadline += bonusSeconds * 1000;
             timerBonus?.cancel();
@@ -172,7 +171,7 @@ function step(dt,now) {
               {duration:550,easing:"ease-out"}
             );
           }
-          el("score").textContent = score + "점";
+          el("gold").textContent = gold + "g";
           bodies.splice(j,1);
           bodies.splice(i,1);
           if (a.type < 7) add(mergedType,x,y);
@@ -308,7 +307,7 @@ function tick(now) {
     ctx.fillStyle="#ffdf66";
     const labelX=clamp(effect.x,65,W-65);
     const labelY=Math.max(16,effect.y-23-progress*27);
-    const title = effect.precise ? "정확한 합체 ×2" : "GOOD!";
+    const title = effect.precise ? "정확한 합체" : "GOOD!";
     if (effect.precise) ctx.font="900 18px system-ui";
     ctx.strokeText(title,labelX,labelY);
     ctx.fillText(title,labelX,labelY);
