@@ -141,7 +141,7 @@ function step(dt,now) {
         if (a.type===b.type) {
           const x=(a.x+b.x)/2, y=(a.y+b.y)/2;
           const mergedType = Math.min(a.type+1,7);
-          const bonusSeconds = a.type<7 && mergedType>=4 ? mergedType-2 : 0;
+          const bonusSeconds = a.type<7 && mergedType>=5 ? 1 : 0;
           effects.push({x,y,born:now,bonusSeconds});
           score += 10*(a.type+1);
           if (bonusSeconds) {
