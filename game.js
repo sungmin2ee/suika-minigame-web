@@ -8,6 +8,7 @@ const warningLine = 86;
 const overflowLimit = 1300;
 const dropCooldown = 300;
 const sizes = [13,17,22,27,33,41,50,62].map(radius => radius * 1.3);
+const collisionRadii = sizes.map((radius, type) => radius * (type === 6 ? .88 : .94));
 const atlas = [["470cf.png",[658.18,-20,-180.61,877.58]],["470cf.png",[382.39,-179.37,-62.68,574.6]],["470cf.png",[381.05,-5.53,-237.41,531.94]],["470cf.png",[326.13,-244.48,-42.64,484.28]],["470cf.png",[291.94,-312.87,-24.73,423.39]],["470cf.png",[317.54,-97.97,-179.24,489.19]],["470cf.png",[246.82,-167.05,-124.09,411.36]],["54635.png",null],["bff02.png",[671.97,-101.34,-124.24,1190.6]],["bff02.png",[434.8,-259.06,-58.97,821.3]],["bff02.png",[291.78,-296.57,-22.52,556.11]],["bff02.png",[245.03,-346.31,-13.64,452.55]],["bff02.png",[245.03,-8.5,-130.5,452.55]],["bff02.png",[245.03,-119.37,-132.41,452.55]],["bff02.png",[245.03,-232.47,-136.44,452.55]],["bff02.png",[245.03,-345.11,-137.39,452.55]]];
 const images = new Map();
 for (const [file] of atlas) {
@@ -20,7 +21,7 @@ let bodies, effects, aim, next, upcoming, score, deadline, last, frame, dropAt;
 let running = false;
 let timerBonus;
 let fallingFruit;
-const physicsStep = 1 / 180;
+const physicsStep = 1 / 240;
 let physicsAccumulator = 0;
 let gold = 0;
 let overflowSince=new Map();
@@ -100,12 +101,12 @@ function closeGame() {
   if (game.open) game.close();
 }
 function add(type,x,y) {
-  bodies.push({type,x,y,r:sizes[type],vx:0,vy:0,angle:0,mass:(sizes[type]/sizes[0])**2});
+  bodies.push({type,x,y,r:collisionRadii[type],vx:0,vy:0,angle:0,mass:(sizes[type]/sizes[0])**2});
 }
 function drop() {
   const now = performance.now();
   if (!running || now >= deadline || now < dropAt || fallingFruit) return;
-  const r = sizes[next], x = clamp(aim,r,W-r);
+  const r = collisionRadii[next], x = clamp(aim,r,W-r);
   if (bodies.some(b => Math.hypot(b.x-x,b.y-r) < b.r+r)) {
     return;
   }
@@ -141,7 +142,7 @@ function step(dt,now) {
     b.angle += roll;
 
   }
-  for (let pass=0;pass<12;pass++) {
+  for (let pass=0;pass<16;pass++) {
     for (let i=0;i<bodies.length;i++) {
       for (let j=i+1;j<bodies.length;j++) {
         const a=bodies[i], b=bodies[j], dx=b.x-a.x, dy=b.y-a.y;
@@ -184,9 +185,9 @@ function step(dt,now) {
         b.x+=moveB; b.y+=ny*correction*shareB;
         const speed=(b.vx-a.vx)*nx+(b.vy-a.vy)*ny;
         if (speed<0) {
-          const hardImpact=speed < -45 && pass===0;
-          const side=hardImpact ? Math.min(-speed*1.7,480)*(nx || 1) : -speed*nx;
-          const vertical=ny*speed*(hardImpact ? 1.28 : 1);
+          const hardImpact=speed < -100 && pass===0;
+          const side=hardImpact ? Math.min(-speed*1.45,480)*nx : -speed*nx;
+          const vertical=ny*speed*(hardImpact ? 1.12 : 1);
           a.vx-=side*shareA; a.vy+=vertical*shareA;
           b.vx+=side*shareB; b.vy-=vertical*shareB;
         }
@@ -234,16 +235,16 @@ function tick(now) {
   ctx.setLineDash([7,5]);
   ctx.beginPath(); ctx.moveTo(0,warningLine); ctx.lineTo(W,warningLine); ctx.stroke();
   ctx.lineWidth=1;
-  const r=sizes[next], x=clamp(aim,r,W-r);
+  const r=collisionRadii[next], x=clamp(aim,r,W-r);
   const ready=now>=dropAt && !fallingFruit;
   ctx.strokeStyle=ready ? "#fff6cf" : "#ffffff35";
   ctx.setLineDash([4,6]);
   ctx.beginPath(); ctx.moveTo(x,r); ctx.lineTo(x,H); ctx.stroke();
   ctx.setLineDash([]);
-  for (const b of bodies) drawFruit(b.type,b.x,b.y,b.r,b.angle);
+  for (const b of bodies) drawFruit(b.type,b.x,b.y,sizes[b.type],b.angle);
   ctx.save();
   ctx.globalAlpha=ready ? 1 : .42;
-  drawFruit(next,x,r,r);
+  drawFruit(next,x,r,sizes[next]);
   ctx.restore();
   if (overflowing) {
     const elapsed=now-Math.min(...overflowSince.values());
