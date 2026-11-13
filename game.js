@@ -95,6 +95,7 @@ function drop() {
     return;
   }
   add(next,x,r);
+  bodies.at(-1).spin = 2.8;
   next = pick();
   dropAt = now + 340;
 }
@@ -140,8 +141,11 @@ function step(dt,now) {
           break;
         }
         const nx=distance ? dx/distance : 1, ny=distance ? dy/distance : 0;
-        a.x-=nx*overlap/2; a.y-=ny*overlap/2;
-        b.x+=nx*overlap/2; b.y+=ny*overlap/2;
+        const shift=nx*overlap/2;
+        a.angle+=(clamp(a.x-shift,a.r,W-a.r)-a.x)/a.r;
+        b.angle+=(clamp(b.x+shift,b.r,W-b.r)-b.x)/b.r;
+        a.x-=shift; a.y-=ny*overlap/2;
+        b.x+=shift; b.y+=ny*overlap/2;
         const speed=(b.vx-a.vx)*nx+(b.vy-a.vy)*ny;
         if (speed<0) {
           const tangent=(b.vx-a.vx)*(-ny)+(b.vy-a.vy)*nx;
