@@ -81,7 +81,7 @@ function start() {
   physicsAccumulator = 0;
   timerBonus?.cancel();
   bodies = []; effects = []; aim = W/2; next = 0; upcoming = pick(); drawUpcoming(); score = 0;
-  last = performance.now(); deadline = last + 50000; dropAt = last;
+  last = performance.now(); deadline = last + 30000; dropAt = last;
   running = true;
   el("score").textContent = "0점";
   board.focus();
