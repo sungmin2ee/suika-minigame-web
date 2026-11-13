@@ -11,10 +11,10 @@
 .stat,#close{background:linear-gradient(#41652c,#213b1c);border:1px solid #789a49;color:#fff0bc;box-shadow:0 2px 4px #0006}
 .stat{display:flex;justify-content:space-between;align-items:center;gap:4px;padding:8px 6px;border-radius:20px;font-size:clamp(12px,4vw,18px);font-variant-numeric:tabular-nums;white-space:nowrap}.stat small{font-size:clamp(9px,2.7vw,12px)}
 #close{position:static;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;padding:0;line-height:1}
-</style>
+.timer-label{display:inline-flex;align-items:center;gap:3px}.timer-label span{font-size:1.15em;line-height:1}</style>
 <main><button id="launch"><span aria-hidden="true">🎮</span>미니게임</button></main>
 <dialog id="game" aria-label="수박게임">
-<header class="hud"><div class="stat"><small>남은 시간</small><span id="time" role="timer">1:00</span></div><div class="stat"><small>점수</small><span id="score">0점</span></div><button id="close" aria-label="닫기">×</button></header><div class="game"><canvas id="board" width="320" height="462" tabindex="0" aria-label="과일 놓기. 방향키로 조준하고 스페이스로 놓으세요."></canvas></div><section class="order" aria-labelledby="order-title"><strong id="order-title">합체 순서</strong><ol id="fruit-order"></ol></section>
+<header class="hud"><div class="stat"><small class="timer-label"><span aria-hidden="true">⏳</span> 남은 시간</small><span id="time" role="timer">1:00</span></div><div class="stat"><small>점수</small><span id="score">0점</span></div><button id="close" aria-label="닫기">×</button></header><div class="game"><canvas id="board" width="320" height="462" tabindex="0" aria-label="과일 놓기. 방향키로 조준하고 스페이스로 놓으세요."></canvas></div><section class="order" aria-labelledby="order-title"><strong id="order-title">합체 순서</strong><ol id="fruit-order"></ol></section>
 </dialog>
 <dialog id="result" aria-labelledby="result-title"><h2 id="result-title">게임 종료</h2><p id="summary"></p><button id="again">다시 하기</button> <button id="done">닫기</button></dialog>
 <script src="game.js?v=fruit-growth"></script>
